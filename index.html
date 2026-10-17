@@ -2,177 +2,1525 @@
 <html lang="de" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="robots" content="noindex, nofollow">
-    <title>REVORYX ESPORTS – Wartungsarbeiten</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0c">
+    <title>REVORYX ESPORTS - Team Kalender & Stintplaner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        revoryx: {
+                            bg: '#0a0a0c',
+                            card: '#121217',
+                            cardBorder: '#1f1f29',
+                            blue: '#0066ff',
+                            cyan: '#00f3ff',
+                            darkBlue: '#07070a',
+                            silver: '#cbd5e1'
+                        }
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        rajdhani: ['Rajdhani', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
-        :root { --bg:#0a0a0c; --card:#121217; --border:#1f1f29; --cyan:#00f3ff; --blue:#0066ff; --silver:#cbd5e1; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
-        body {
-            font-family: 'Rajdhani', 'Inter', sans-serif; background: var(--bg); color: #f3f4f6;
-            display: flex; align-items: center; justify-content: center; overflow-x: hidden;
-            padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem max(1.25rem, env(safe-area-inset-bottom));
+        body { 
+            font-family: 'Rajdhani', 'Inter', sans-serif; 
+            background-color: #0a0a0c;
+            overflow-x: hidden;
         }
-        ::selection { background: var(--cyan); color: #000; }
-        #bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-        .bg-logo {
-            position: fixed; inset: 0; margin: auto; width: min(140vw, 1100px); max-height: 90vh; object-fit: contain;
-            mix-blend-screen: normal; mix-blend-mode: screen; pointer-events: none; z-index: 1;
-            animation: breathe 8s infinite alternate cubic-bezier(.45,.05,.55,.95);
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        
+        .neon-glow-cyan {
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
         }
-        @keyframes breathe {
-            0% { filter: drop-shadow(0 0 10px rgba(0,102,255,.2)); transform: scale(.95) translateY(16px); opacity: .04; }
-            50% { filter: drop-shadow(0 0 70px rgba(0,243,255,.6)); transform: scale(1.03) translateY(-12px); opacity: .12; }
-            100% { filter: drop-shadow(0 0 25px rgba(0,102,255,.3)); transform: scale(.98) translateY(8px); opacity: .06; }
+        .neon-glow-blue {
+            box-shadow: 0 0 25px rgba(0, 102, 255, 0.35);
+        }
+        .glass-panel {
+            background: rgba(18, 18, 23, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 243, 255, 0.12);
+        }
+        .glass-card {
+            background: rgba(15, 15, 20, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(31, 31, 41, 0.8);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            border-color: rgba(0, 243, 255, 0.4);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0, 243, 255, 0.15);
+        }
+        
+        .day-events-scroll::-webkit-scrollbar { width: 4px; }
+        .day-events-scroll::-webkit-scrollbar-track { background: rgba(10, 10, 12, 0.5); border-radius: 2px; }
+        .day-events-scroll::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.35); border-radius: 2px; }
+        .day-events-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0, 243, 255, 0.8); }
+
+        .bg-logo-breathe {
+            animation: float-and-pulse 8s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
+            transform-origin: center center;
+            will-change: transform, filter, opacity;
+        }
+        .bg-logo-depth {
+            animation: pulse-depth 6s infinite alternate ease-in-out;
+            will-change: transform, opacity;
         }
 
-        .panel {
-            position: relative; z-index: 2; width: 100%; max-width: 640px; text-align: center;
-            background: rgba(18,18,23,.78); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(0,243,255,.18); border-radius: 1.5rem; padding: 2.5rem 1.75rem 2rem;
-            box-shadow: 0 25px 60px rgba(0,0,0,.55), 0 0 40px rgba(0,243,255,.08);
+        @keyframes float-and-pulse {
+            0% { filter: drop-shadow(0 0 10px rgba(0, 102, 255, 0.2)); transform: scale(0.95) translateY(20px) rotate(-2deg); opacity: 0.04; }
+            50% { filter: drop-shadow(0 0 70px rgba(0, 243, 255, 0.6)); transform: scale(1.03) translateY(-15px) rotate(1.5deg); opacity: 0.12; }
+            100% { filter: drop-shadow(0 0 25px rgba(0, 102, 255, 0.3)); transform: scale(0.98) translateY(10px) rotate(-0.5deg); opacity: 0.06; }
         }
-        .panel::before { content:''; position:absolute; top:0; left:12%; right:12%; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); }
-        .logo { height: 64px; width: auto; max-width: 80%; object-fit: contain; filter: drop-shadow(0 0 14px rgba(0,102,255,.55)); margin-bottom: 1.25rem; }
-        .logo-fallback { display: none; font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: .2em; color: var(--cyan); font-size: 1.1rem; margin-bottom: 1.25rem; }
 
-        .gear {
-            width: 84px; height: 84px; margin: 0 auto 1.25rem; border-radius: 50%; display: grid; place-items: center;
-            background: rgba(0,243,255,.08); border: 1px solid rgba(0,243,255,.35); box-shadow: 0 0 30px rgba(0,243,255,.25);
-            color: var(--cyan); font-size: 2.1rem;
+        @keyframes pulse-depth {
+            0% { transform: scale(1.1); opacity: 0.02; }
+            100% { transform: scale(1.15); opacity: 0.06; filter: blur(25px); }
         }
-        .gear i { animation: spin 6s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #07070a; }
+        ::-webkit-scrollbar-thumb { background: #1f1f29; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+    
+        /* ===== Stintplaner ===== */
+        .stint-label{display:block;font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9aa4b2;margin-bottom:.45rem}
+        .stint-hint{display:block;font-size:.8rem;color:#6b7686;margin-top:.4rem;min-height:1.1rem}
+        .stint-field{display:flex;align-items:center;background:#07070a;border:1px solid #2a2a38;border-radius:.75rem;transition:border-color .15s,box-shadow .15s}
+        .stint-field:hover{border-color:#3d3d52}
+        .stint-field:focus-within{border-color:#00f3ff;box-shadow:0 0 0 3px rgba(0,243,255,.18)}
+        .stint-field input{flex:1;min-width:0;width:100%;background:transparent;border:0;outline:0;color:#fff;font-family:'Inter',sans-serif;font-size:1.2rem;font-weight:600;font-variant-numeric:tabular-nums;padding:.7rem .4rem .7rem .9rem;text-align:right}
+        .stint-field input[type=time]{text-align:left;color-scheme:dark}
+        .stint-field input:disabled{color:#cbd5e1}
+        .stint-field .unit{padding-right:.9rem;font-size:.8rem;font-weight:600;color:#7b8794;white-space:nowrap}
+        .stint-select{width:100%;min-width:160px;background:#07070a;border:1px solid #2a2a38;border-radius:.75rem;color:#fff;font-size:1.05rem;font-weight:600;padding:.8rem .75rem;transition:border-color .15s,box-shadow .15s}
+        .stint-select:focus{outline:0;border-color:#00f3ff;box-shadow:0 0 0 3px rgba(0,243,255,.18)}
+        .stint-table{width:100%;min-width:860px;border-collapse:separate;border-spacing:0 .5rem}
+        .stint-table thead th{font-family:'Orbitron',sans-serif;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:#00f3ff;padding:.25rem .85rem;text-align:left;white-space:nowrap;font-weight:700}
+        .stint-table .num{text-align:right}
+        .stint-table tbody td{background:rgba(7,7,10,.65);padding:.7rem .85rem;border-top:1px solid #1f1f29;border-bottom:1px solid #1f1f29;vertical-align:middle}
+        .stint-table tbody td:first-child{border-left:1px solid #1f1f29;border-radius:.85rem 0 0 .85rem}
+        .stint-table tbody td:last-child{border-right:1px solid #1f1f29;border-radius:0 .85rem .85rem 0}
+        .stint-table tbody tr:hover td{background:rgba(0,243,255,.05)}
+        .stint-sub{display:block;font-family:'Inter',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:0;text-transform:none;margin-top:.15rem;color:#2f9aa0}
+        .stint-sub.in{color:#d9b25f}
+        .stint-calc{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:1.3rem;font-weight:600;white-space:nowrap}
+        .stint-badge{display:inline-flex;align-items:center;justify-content:center;width:2.4rem;height:2.4rem;border-radius:.7rem;background:rgba(0,243,255,.1);border:1px solid rgba(0,243,255,.35);color:#00f3ff;font-family:'Orbitron',sans-serif;font-weight:800;font-size:.95rem}
+        .stint-kpi{background:#07070a;border:1px solid #1f1f29;border-radius:1rem;padding:1rem 1.1rem}
+        .stint-kpi .v{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:1.7rem;font-weight:600;color:#00f3ff;line-height:1.2;margin-top:.25rem}
+    
+        /* ===== Mobile-Optimierung ===== */
+        html { -webkit-text-size-adjust: 100%; }
+        body { overflow-x: hidden; padding-bottom: env(safe-area-inset-bottom); -webkit-tap-highlight-color: transparent; }
+        header.sticky { padding-top: env(safe-area-inset-top); }
+        button, select, [onclick] { touch-action: manipulation; }
 
-        .tag { display: inline-flex; align-items: center; gap: .5rem; font-family: 'Orbitron', sans-serif; font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-               color: #fbbf24; background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.35); padding: .35rem .8rem; border-radius: 999px; margin-bottom: 1rem; }
-        .tag .dot { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; animation: ping 1.6s ease-in-out infinite; }
-        @keyframes ping { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(1.5); } }
+        /* Mobiler Monatskalender (Punkte + Tagesliste) */
+        .m-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: .4rem; }
+        .m-day { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: .3rem; padding: .35rem 0 .4rem; min-height: 54px; background: transparent; border: 0; border-radius: .75rem; color: #9aa4b2; font-family: 'Orbitron', sans-serif; font-size: .85rem; font-weight: 700; cursor: pointer; }
+        .m-day.empty { pointer-events: none; }
+        .m-day .n { min-width: 1.9rem; height: 1.9rem; display: grid; place-items: center; border-radius: .6rem; }
+        .m-day.today .n { background: #00f3ff; color: #000; box-shadow: 0 0 12px rgba(0,243,255,.6); }
+        .m-day.sel { background: rgba(0,243,255,.12); box-shadow: inset 0 0 0 1px rgba(0,243,255,.6); color: #fff; }
+        .m-dots { display: flex; gap: 3px; min-height: 6px; align-items: center; }
+        .m-dots i { width: 6px; height: 6px; border-radius: 50%; display: block; }
+        .m-dots b { font-size: .6rem; color: #6b7686; line-height: 1; }
 
-        h1 { font-family: 'Orbitron', sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; line-height: 1.15;
-             font-size: clamp(1.6rem, 6vw, 2.6rem); background: linear-gradient(90deg, var(--cyan), var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .lead { margin: 1rem auto 0; max-width: 460px; font-size: 1.2rem; font-weight: 500; color: var(--silver); line-height: 1.45; }
+        @media (max-width: 767px) {
+            /* iOS zoomt bei Schrift < 16px in Eingabefeldern: verhindern */
+            input, select, textarea { font-size: 16px !important; }
+            .stint-field input { font-size: 1.2rem !important; }
+            .stint-select { font-size: 1.05rem !important; }
+            .bg-logo-depth { display: none; }
+            .bg-logo-breathe { animation-duration: 14s; }
+            #login-modal, #event-modal, #member-modal, #detail-modal { overflow-y: auto; align-items: flex-start !important; }
+            #login-modal > div, #event-modal > div, #member-modal > div, #detail-modal > div { margin-top: auto; margin-bottom: auto; }
+            #view-month-btn, #view-week-btn, #view-agenda-btn { flex: 1; padding-top: .7rem; padding-bottom: .7rem; }
+            #m-tab-calendar-btn, #m-tab-stint-btn { padding-top: .75rem; padding-bottom: .75rem; }
+            #stint-actions-bar button { width: 100%; padding-top: .9rem; padding-bottom: .9rem; }
+            .stint-hint { font-size: .7rem; }
+            .stint-kpi { padding: .8rem .9rem; }
+            .stint-kpi .v { font-size: 1.4rem; }
 
-        .bar { margin: 1.75rem auto 0; max-width: 420px; height: 8px; border-radius: 999px; background: #07070a; border: 1px solid var(--border); overflow: hidden; }
-        .bar span { display: block; height: 100%; width: 40%; border-radius: 999px; background: linear-gradient(90deg, var(--blue), var(--cyan)); box-shadow: 0 0 14px rgba(0,243,255,.7); animation: slide 2s ease-in-out infinite; }
-        @keyframes slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
-
-        #countdown { display: none; margin-top: 1.75rem; }
-        #countdown.on { display: block; }
-        .cd-label { font-family: 'Orbitron', sans-serif; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: #9aa4b2; margin-bottom: .6rem; }
-        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; max-width: 420px; margin: 0 auto; }
-        .cd-box { background: #07070a; border: 1px solid var(--border); border-radius: .9rem; padding: .7rem .2rem; }
-        .cd-box b { display: block; font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; font-size: 1.7rem; font-weight: 600; color: var(--cyan); line-height: 1.1; }
-        .cd-box small { font-family: 'Orbitron', sans-serif; font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: #6b7686; }
-
-        .info { margin-top: 1.75rem; display: grid; gap: .6rem; text-align: left; }
-        .info div { display: flex; gap: .75rem; align-items: flex-start; background: rgba(15,15,20,.85); border: 1px solid var(--border); border-radius: .9rem; padding: .75rem .9rem; font-size: 1.05rem; color: var(--silver); }
-        .info i { color: var(--cyan); margin-top: .2rem; width: 1.1rem; text-align: center; }
-        .btn { margin-top: 1.75rem; display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; border: 0; font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase;
-               color: #000; background: linear-gradient(90deg, #22d3ee, var(--blue)); padding: .85rem 1.5rem; border-radius: .8rem; box-shadow: 0 0 20px rgba(0,243,255,.3); transition: transform .2s, box-shadow .2s; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 0 28px rgba(0,243,255,.5); }
-        .foot { margin-top: 1.5rem; font-size: .8rem; color: #6b7686; letter-spacing: .04em; }
-        @media (prefers-reduced-motion: reduce) { .gear i, .bar span, .bg-logo, .tag .dot { animation: none; } }
+            /* Stint-Tabelle als Karten */
+            .stint-table { min-width: 0; border-spacing: 0; display: block; }
+            .stint-table thead { display: none; }
+            .stint-table tbody { display: block; }
+            .stint-table tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem .9rem; align-items: center; background: rgba(7,7,10,.7); border: 1px solid #1f1f29; border-radius: 1rem; padding: .9rem; margin-bottom: .75rem; }
+            .stint-table tbody td { display: block; width: auto !important; background: transparent !important; border: 0 !important; border-radius: 0 !important; padding: 0; text-align: left; }
+            .stint-table tbody td::before { content: attr(data-label); display: block; font-family: 'Orbitron', sans-serif; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; color: #6b7686; margin-bottom: .3rem; }
+            .stint-table tbody td:first-child::before, .stint-table tbody td.act-col::before { display: none; }
+            .stint-table tbody td[colspan] { grid-column: 1 / -1; text-align: center; }
+            .stint-table tbody td:nth-child(1) { order: 1; }
+            .stint-table tbody td:nth-child(8) { order: 2; justify-self: end; }
+            .stint-table tbody td:nth-child(2) { order: 3; grid-column: 1 / -1; }
+            .stint-table tbody td:nth-child(4) { order: 4; grid-column: 1 / -1; }
+            .stint-table tbody td:nth-child(3) { order: 5; }
+            .stint-table tbody td:nth-child(7) { order: 6; }
+            .stint-table tbody td:nth-child(5) { order: 7; }
+            .stint-table tbody td:nth-child(6) { order: 8; }
+            .stint-table .act-col button { padding: .7rem .9rem; font-size: 1.1rem; }
+            .stint-calc { font-size: 1.35rem; }
+        }
+        @media (max-width: 639px) {
+            #role-badge { padding: .25rem .5rem; font-size: 10px; }
+            #login-toggle-btn, #logout-btn, #nav-roster-btn, #nav-event-btn { padding: .65rem .75rem; }
+            #db-status-badge { font-size: 9px; padding: 2px 6px; }
+            #toast { left: 1rem; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); }
+            footer button { padding: .6rem .5rem; }
+        }
     </style>
 </head>
-<body>
+<body class="text-gray-100 min-h-screen flex flex-col selection:bg-cyan-400 selection:text-black relative">
+
     <canvas id="bg-canvas"></canvas>
-    <img class="bg-logo" src="Futuristisches REVORYX Esports-Logo.png" alt="" onerror="this.style.display='none'">
 
-    <main class="panel">
-        <img class="logo" src="Futuristisches REVORYX Esports-Logo.png" alt="REVORYX Esports"
-             onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
-        <div id="logo-fallback" class="logo-fallback">REVORYX ESPORTS</div>
+    <div class="fixed inset-0 z-[1] pointer-events-none flex items-center justify-center overflow-hidden">
+        <div id="parallax-wrapper" class="relative w-full h-full flex items-center justify-center transition-transform duration-300 ease-out">
+            <img src="Futuristisches REVORYX Esports-Logo.png" alt="" class="absolute z-0 w-[170%] sm:w-[130%] md:w-[95%] max-w-7xl mix-blend-screen blur-[20px] bg-logo-depth" onerror="this.style.display='none'">
+            <img src="Futuristisches REVORYX Esports-Logo.png" alt="Background Logo" class="relative z-10 w-[150%] sm:w-[120%] md:w-[85%] max-w-6xl mix-blend-screen bg-logo-breathe" onerror="this.style.display='none'">
+        </div>
+    </div>
 
-        <div class="gear"><i class="fa-solid fa-gear"></i></div>
-        <div class="tag"><span class="dot"></span> Wartungsmodus aktiv</div>
-        <h1>Wartungsarbeiten</h1>
-        <p class="lead">Wir schrauben gerade am Setup. Der Team-Kalender und der Stintplaner sind in Kürze wieder für dich am Start.</p>
+    <!-- Header / Navbar -->
+    <header class="glass-panel border-b border-cyan-500/20 sticky top-0 z-30 shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-24 flex items-center justify-between">
+            
+            <div class="flex items-center gap-3 sm:gap-6">
+                <div class="relative group cursor-pointer flex items-center" onclick="switchCategory('calendar')" title="Zurück zum Kalender">
+                    <img src="Futuristisches REVORYX Esports-Logo.png" alt="REVORYX Logo" class="h-8 sm:h-14 w-auto object-contain drop-shadow-[0_0_12px_rgba(0,102,255,0.5)] group-hover:drop-shadow-[0_0_25px_rgba(0,243,255,0.9)] transition-all duration-500 transform group-hover:scale-105" onerror="this.onerror=null; this.src='https://placehold.co/200x60/121217/00f3ff?text=REVORYX+ESPORTS';">
+                </div>
+                <div class="flex flex-col justify-center">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span id="db-status-badge" class="text-[10px] font-orbitron font-bold px-2 py-0.5 rounded bg-emerald-950/90 text-emerald-400 border border-emerald-500/40 shadow">ONLINE (SYNC)</span>
+                    </div>
+                    <p class="text-xs text-gray-400 font-semibold tracking-widest uppercase hidden sm:flex items-center gap-2">
+                        <span id="live-indicator" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Realtime Active
+                    </p>
+                </div>
+            </div>
 
-        <div class="bar" aria-hidden="true"><span></span></div>
+            <!-- Main Category Switcher (Tabs) -->
+            <div class="hidden md:flex bg-revoryx-bg/90 p-1.5 rounded-2xl border border-revoryx-cardBorder shadow-xl">
+                <button id="tab-calendar-btn" onclick="switchCategory('calendar')" class="px-5 py-2 rounded-xl text-xs font-orbitron font-bold uppercase tracking-wider transition">
+                    <i class="fa-solid fa-calendar-days mr-1.5"></i> Kalender
+                </button>
+                <button id="tab-stint-btn" onclick="switchCategory('stint')" class="px-5 py-2 rounded-xl text-xs font-orbitron font-bold uppercase tracking-wider transition">
+                    <i class="fa-solid fa-stopwatch mr-1.5"></i> Stintplaner
+                </button>
+            </div>
 
-        <div id="countdown">
-            <div class="cd-label">Voraussichtlich wieder online in</div>
-            <div class="cd-grid">
-                <div class="cd-box"><b id="cd-d">00</b><small>Tage</small></div>
-                <div class="cd-box"><b id="cd-h">00</b><small>Std</small></div>
-                <div class="cd-box"><b id="cd-m">00</b><small>Min</small></div>
-                <div class="cd-box"><b id="cd-s">00</b><small>Sek</small></div>
+            <!-- Controls & Login -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div id="role-display-box" class="flex items-center space-x-2">
+                    <span id="role-badge" class="px-3 py-1 rounded-lg text-xs font-orbitron font-bold uppercase bg-slate-800/90 text-gray-300 border border-slate-700 shadow">Gast</span>
+                    <button id="login-toggle-btn" onclick="openLoginModal()" class="flex items-center space-x-1.5 bg-slate-800/80 hover:bg-slate-700 text-cyan-400 px-3.5 py-2 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider border border-cyan-500/30 transition transform hover:-translate-y-0.5 shadow">
+                        <i class="fa-solid fa-lock text-xs"></i>
+                        <span class="hidden sm:inline">Login</span>
+                    </button>
+                    <button id="logout-btn" onclick="logout()" class="hidden flex items-center space-x-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-300 px-3 py-2 rounded-lg text-xs font-orbitron font-bold uppercase border border-red-500/30 transition shadow" title="Abmelden">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </button>
+                </div>
+
+                <button id="nav-roster-btn" onclick="openMemberModal()" class="hidden items-center space-x-2 glass-card text-cyan-300 px-4 py-2.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider border border-cyan-500/30 transition shadow-lg">
+                    <i class="fa-solid fa-users text-cyan-400"></i>
+                    <span class="hidden md:inline">Fahrer</span>
+                </button>
+                <button id="nav-event-btn" onclick="openEventModal()" class="hidden items-center space-x-2 bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black px-4 sm:px-5 py-2.5 rounded-lg text-xs font-orbitron font-black uppercase tracking-wider shadow-xl neon-glow-cyan transition transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                    <span class="hidden sm:inline">Neuer Termin</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Tab Switcher Bar -->
+    <div class="md:hidden flex bg-revoryx-bg/95 border-b border-revoryx-cardBorder px-4 py-2 z-20 justify-center">
+        <div class="flex bg-revoryx-card p-1 rounded-xl w-full max-w-sm border border-revoryx-cardBorder">
+            <button id="m-tab-calendar-btn" onclick="switchCategory('calendar')" class="flex-1 py-1.5 text-center text-xs font-orbitron font-bold uppercase rounded-lg transition">Kalender</button>
+            <button id="m-tab-stint-btn" onclick="switchCategory('stint')" class="flex-1 py-1.5 text-center text-xs font-orbitron font-bold uppercase rounded-lg transition">Stintplaner</button>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6 z-10 relative">
+
+        <!-- SECTION 1: CALENDAR VIEW -->
+        <div id="category-calendar-view" class="flex flex-col gap-6 flex-grow">
+            <!-- Quick Stats Bar -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 relative z-10">
+                <div class="glass-card p-3 sm:p-4 rounded-xl flex items-center space-x-3 sm:space-x-4 shadow-lg">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400"><i class="fa-solid fa-flag-checkered text-lg"></i></div>
+                    <div><span class="text-xs text-gray-400 uppercase font-semibold block">Rennen</span><span id="stat-races" class="text-xl font-orbitron font-bold text-white">0</span></div>
+                </div>
+                <div class="glass-card p-3 sm:p-4 rounded-xl flex items-center space-x-3 sm:space-x-4 shadow-lg">
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400"><i class="fa-solid fa-stopwatch text-lg"></i></div>
+                    <div><span class="text-xs text-gray-400 uppercase font-semibold block">Qualifying</span><span id="stat-qualis" class="text-xl font-orbitron font-bold text-white">0</span></div>
+                </div>
+                <div class="glass-card p-3 sm:p-4 rounded-xl flex items-center space-x-3 sm:space-x-4 shadow-lg">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400"><i class="fa-solid fa-gauge-high text-lg"></i></div>
+                    <div><span class="text-xs text-gray-400 uppercase font-semibold block">Training</span><span id="stat-trainings" class="text-xl font-orbitron font-bold text-white">0</span></div>
+                </div>
+                <div class="glass-card p-3 sm:p-4 rounded-xl flex items-center space-x-3 sm:space-x-4 shadow-lg">
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400"><i class="fa-solid fa-users text-lg"></i></div>
+                    <div><span class="text-xs text-gray-400 uppercase font-semibold block">Fahrer in DB</span><span id="stat-drivers" class="text-xl font-orbitron font-bold text-white">0</span></div>
+                </div>
+            </div>
+
+            <!-- Dashboard Control Bar -->
+            <div class="glass-panel p-4 rounded-2xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                    <div class="flex w-full sm:w-auto bg-revoryx-bg/90 p-1 rounded-xl border border-revoryx-cardBorder">
+                        <button id="view-month-btn" onclick="switchView('month')" class="px-4 py-1.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider transition">Monat</button>
+                        <button id="view-week-btn" onclick="switchView('week')" class="px-4 py-1.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider transition">Woche</button>
+                        <button id="view-agenda-btn" onclick="switchView('agenda')" class="px-4 py-1.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider transition">Agenda</button>
+                    </div>
+
+                    <div class="flex flex-1 sm:flex-none items-center justify-between space-x-2 bg-revoryx-bg/90 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-revoryx-cardBorder">
+                        <button onclick="changeDate(-1)" class="p-3 sm:p-1 hover:text-cyan-400 transition"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span id="current-period-label" class="text-sm font-orbitron font-bold flex-1 sm:flex-none sm:w-40 text-center text-cyan-300 capitalize">Monat Jahr</span>
+                        <button onclick="changeDate(1)" class="p-3 sm:p-1 hover:text-cyan-400 transition"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+
+                    <button onclick="setToday()" class="text-xs font-orbitron font-bold text-gray-300 hover:text-white bg-revoryx-bg/90 border border-revoryx-cardBorder px-4 py-3 sm:px-3 sm:py-2 rounded-xl transition shadow">Heute</button>
+                </div>
+
+                <div class="grid grid-cols-2 md:flex md:flex-wrap items-center gap-3 w-full md:w-auto md:justify-end">
+                    <select id="filter-member" onchange="renderCalendar()" class="w-full md:w-auto min-w-0 bg-revoryx-bg/90 text-xs font-semibold text-gray-300 border border-revoryx-cardBorder rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 cursor-pointer shadow">
+                        <option value="">Alle Fahrer</option>
+                    </select>
+
+                    <select id="filter-type" onchange="renderCalendar()" class="w-full md:w-auto min-w-0 bg-revoryx-bg/90 text-xs font-semibold text-gray-300 border border-revoryx-cardBorder rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 cursor-pointer shadow">
+                        <option value="">Alle Event-Typen</option>
+                        <option value="Rennen">🏁 Rennen</option>
+                        <option value="Qualifying">⏱️ Qualifying</option>
+                        <option value="Training">🛠️ Training</option>
+                        <option value="Besprechung">👥 Besprechung</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Calendar Container -->
+            <div id="calendar-container" class="flex-grow flex flex-col relative z-10"></div>
+        </div>
+
+        <!-- SECTION 2: STINTPLANER VIEW -->
+        <div id="category-stint-view" class="hidden flex flex-col gap-6 flex-grow">
+            <div class="glass-panel p-4 sm:p-6 rounded-2xl shadow-xl flex flex-col gap-5 sm:gap-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-revoryx-cardBorder pb-5">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-orbitron font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-stopwatch text-cyan-400"></i> Renn-Stintplaner (Strategie & Formeln)
+                        </h2>
+                        <p class="text-xs text-gray-400 mt-1">Erstelle detaillierte Stint-Tabellen für Events mit automatischer Runden- und Zeitberechnung.</p>
+                    </div>
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <select id="stint-event-select" onchange="loadStintPlan()" class="flex-grow min-w-0 md:w-64 bg-revoryx-bg text-xs font-semibold text-cyan-300 border border-cyan-500/40 rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-400 shadow">
+                            <option value="">Event auswählen...</option>
+                        </select>
+                        <button id="stint-save-btn" onclick="saveStintPlan()" class="hidden bg-gradient-to-r from-cyan-400 to-blue-600 text-black px-4 py-2.5 rounded-xl text-xs font-orbitron font-black uppercase shadow-lg neon-glow-cyan transition">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Speichern
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Strategy Setup Constants -->
+                <div class="bg-revoryx-bg/80 p-4 sm:p-5 rounded-2xl border border-revoryx-cardBorder">
+                    <div class="text-xs font-orbitron font-bold uppercase text-gray-400 mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders text-cyan-400"></i> Rennparameter</div>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                        <div>
+                            <label class="stint-label" for="stint-start-time">Rennstart</label>
+                            <div class="stint-field"><input type="time" id="stint-start-time" value="14:00" oninput="calculateStints()"><span class="unit">Uhr</span></div>
+                            <span class="stint-hint">Uhrzeit des Starts</span>
+                        </div>
+                        <div>
+                            <label class="stint-label" for="stint-lap-seconds">Rundenzeit</label>
+                            <div class="stint-field"><input type="text" inputmode="decimal" autocomplete="off" id="stint-lap-seconds" value="1:45" placeholder="1:45.320" onfocus="this.select()" oninput="calculateStints()"><span class="unit">m:ss</span></div>
+                            <span class="stint-hint" id="stint-lap-hint">z. B. 1:45.320 oder 105,3</span>
+                        </div>
+                        <div>
+                            <label class="stint-label" for="stint-fuel-lap">Sprit pro Runde</label>
+                            <div class="stint-field"><input type="text" inputmode="decimal" autocomplete="off" id="stint-fuel-lap" value="2,8" placeholder="2,8" onfocus="this.select()" oninput="calculateStints()"><span class="unit">Liter</span></div>
+                            <span class="stint-hint">Komma oder Punkt möglich</span>
+                        </div>
+                        <div>
+                            <label class="stint-label" for="stint-pit-duration" style="color:#00f3ff">Boxenstopp</label>
+                            <div class="stint-field"><input type="text" inputmode="decimal" autocomplete="off" id="stint-pit-duration" value="2,5" placeholder="2,5" onfocus="this.select()" oninput="calculateStints()"><span class="unit">Min</span></div>
+                            <span class="stint-hint">Dauer pro Stopp</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stints Table with Formulas -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="stint-kpi"><div class="stint-label !mb-0">Gesamtdauer</div><div class="v" id="total-race-duration">0h 0m</div></div>
+                    <div class="stint-kpi"><div class="stint-label !mb-0">Gesamtrunden</div><div class="v" id="total-race-laps">0</div></div>
+                    <div class="stint-kpi"><div class="stint-label !mb-0">Stints</div><div class="v" id="total-race-stints">0</div></div>
+                    <div class="stint-kpi"><div class="stint-label !mb-0">Rennende</div><div class="v" id="total-race-end">--:--</div></div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-400">
+                    <span><span class="inline-block w-2.5 h-2.5 rounded-sm mr-1.5 align-middle" style="background:#d9b25f"></span>Eingabe: hier tippst du (Komma oder Punkt)</span>
+                    <span><span class="inline-block w-2.5 h-2.5 rounded-sm mr-1.5 align-middle" style="background:#2f9aa0"></span>Automatisch berechnet</span>
+                </div>
+
+                <div class="overflow-x-auto -mx-2 px-2">
+                    <table class="stint-table">
+                        <thead>
+                            <tr>
+                                <th class="w-16">Stint</th>
+                                <th>Fahrer<span class="stint-sub in">Eingabe</span></th>
+                                <th class="num">Start<span class="stint-sub">automatisch</span></th>
+                                <th class="num">Tankinhalt<span class="stint-sub in">Eingabe</span></th>
+                                <th class="num">Runden<span class="stint-sub">automatisch</span></th>
+                                <th class="num">Dauer<span class="stint-sub">automatisch</span></th>
+                                <th class="num">Ende<span class="stint-sub">automatisch</span></th>
+                                <th class="w-16 text-center act-col">Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stint-table-body">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="stint-actions-bar" class="hidden flex justify-between items-center pt-1">
+                    <button onclick="addStintRow()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-orbitron font-bold border border-cyan-500/30 transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Stint hinzufügen
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="info">
-            <div><i class="fa-solid fa-shield-halved"></i><span>Deine Termine und Stintpläne sind sicher gespeichert, es gehen keine Daten verloren.</span></div>
-            <div><i class="fa-solid fa-rotate"></i><span>Diese Seite prüft automatisch, ob wir wieder online sind.</span></div>
-        </div>
-
-        <button class="btn" onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i> Erneut prüfen</button>
-        <div class="foot">&copy; REVORYX ESPORTS &bull; Teaminterner Kalender &amp; Stintplaner</div>
     </main>
 
+    <!-- Footer -->
+    <footer class="glass-panel border-t border-revoryx-cardBorder py-6 text-center text-xs text-gray-500 z-20 relative">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <img src="Futuristisches REVORYX Esports-Logo.png" alt="Icon" class="h-4 w-auto opacity-70 grayscale" onerror="this.style.display='none'">
+                <span class="font-orbitron font-bold text-gray-400">REVORYX ESPORTS</span>
+                <span class="hidden sm:inline">&bull; Teaminterner Kalender & Stintplaner</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="fetchData()" class="text-cyan-400 hover:text-cyan-300 transition underline"><i class="fa-solid fa-rotate"></i> Sync aktualisieren</button>
+                <span id="footer-role-text" class="text-gray-400">Modus: Gast</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL: Password Login -->
+    <div id="login-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel border border-cyan-500/40 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div class="bg-gradient-to-r from-revoryx-darkBlue to-slate-900 px-6 py-4 flex items-center justify-between border-b border-cyan-500/30">
+                <h3 class="font-orbitron font-bold text-base text-white flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-cyan-400"></i> TEAM LOGIN
+                </h3>
+                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Passwort</label>
+                    <input type="password" id="login-pwd" placeholder="Passwort eingeben..." class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition" onkeydown="if(event.key==='Enter') executeLogin()">
+                </div>
+                <div class="text-[11px] text-gray-400 bg-revoryx-bg/80 p-3 rounded-xl border border-revoryx-cardBorder space-y-1">
+                    <p>&bull; Admin-PW: Termine & Roster verwalten.</p>
+                    <p>&bull; Developer-PW: Voller Systemzugriff.</p>
+                </div>
+            </div>
+            <div class="bg-slate-900/90 px-6 py-3 border-t border-revoryx-cardBorder flex justify-end space-x-2">
+                <button onclick="closeLoginModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 text-xs font-orbitron font-bold rounded-xl transition">Abbrechen</button>
+                <button onclick="executeLogin()" class="px-5 py-2 bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black text-xs font-orbitron font-black uppercase rounded-xl shadow-lg transition">Anmelden</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add/Edit Event -->
+    <div id="event-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel border border-cyan-400/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl neon-glow-blue my-8">
+            <div class="bg-gradient-to-r from-revoryx-darkBlue to-slate-900 px-6 py-4 flex items-center justify-between border-b border-cyan-400/30">
+                <h3 id="event-modal-title" class="font-orbitron font-bold text-lg text-white flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-plus text-cyan-400"></i> TERMIN ERSTELLEN
+                </h3>
+                <button onclick="closeEventModal()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="event-form" onsubmit="saveEvent(event)" class="p-6 space-y-4">
+                <input type="hidden" id="event-id">
+                
+                <div>
+                    <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Vollständiger Event Name *</label>
+                    <input type="text" id="event-title" required placeholder="z.B. 24h Nürburgring iRacing - Hauptrennen" class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Event-Typ *</label>
+                        <select id="event-type" required class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                            <option value="Rennen">🏁 Rennen</option>
+                            <option value="Qualifying">⏱️ Qualifying</option>
+                            <option value="Training">🛠️ Training</option>
+                            <option value="Besprechung">👥 Besprechung</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Simulation *</label>
+                        <select id="event-sim" required class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                            <option value="iRacing">iRacing</option>
+                            <option value="Assetto Corsa Competizione">Assetto Corsa Competizione</option>
+                            <option value="Le Mans Ultimate">Le Mans Ultimate</option>
+                            <option value="rFactor 2">rFactor 2</option>
+                            <option value="Sonstige">Sonstige</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400">Beteiligte Fahrer *</label>
+                        <span class="text-[10px] text-gray-400">Mind. 1 wählen</span>
+                    </div>
+                    <div id="event-members-checkboxes" class="grid grid-cols-2 gap-2 bg-revoryx-bg p-3 rounded-xl border border-revoryx-cardBorder max-h-36 overflow-y-auto"></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Strecke</label>
+                        <input type="text" id="event-track" placeholder="z.B. Spa-Francorchamps" class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Datum *</label>
+                        <input type="date" id="event-date" required class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Uhrzeit *</label>
+                        <input type="time" id="event-time" required value="20:00" class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Dauer</label>
+                        <input type="text" id="event-duration" placeholder="z.B. 2h 30m" class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Setup & Notizen</label>
+                    <textarea id="event-desc" rows="3" placeholder="Fahrzeug, Stints, Setups..." class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-revoryx-cardBorder">
+                    <button type="button" onclick="closeEventModal()" class="px-5 py-2.5 rounded-xl text-xs font-orbitron font-bold uppercase bg-slate-800 hover:bg-slate-700 text-gray-300 transition">Abbrechen</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-orbitron font-black uppercase bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black shadow-lg neon-glow-cyan transition">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Team Members -->
+    <div id="member-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel border border-cyan-400/40 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="bg-gradient-to-r from-revoryx-darkBlue to-slate-900 px-6 py-4 flex items-center justify-between border-b border-cyan-400/30">
+                <h3 class="font-orbitron font-bold text-lg text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users text-cyan-400"></i> FAHRER ROSTER
+                </h3>
+                <button onclick="closeMemberModal()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <form id="member-form" onsubmit="addMember(event)" class="space-y-4 bg-revoryx-bg/90 p-4 rounded-xl border border-revoryx-cardBorder">
+                    <h4 class="text-xs font-orbitron font-bold uppercase tracking-wider text-cyan-400">Neuen Fahrer anlegen</h4>
+                    <div class="flex gap-2">
+                        <input type="text" id="member-name" required placeholder="Fahrer Name / Tag" class="flex-grow bg-revoryx-card border border-slate-700 rounded-xl px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition">
+                        <input type="color" id="member-color" value="#00f3ff" class="w-12 h-10 bg-revoryx-card border border-slate-700 rounded-xl cursor-pointer p-1">
+                    </div>
+                    <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-orbitron font-bold uppercase py-2.5 rounded-xl border border-cyan-500/30 transition">In DB Speichern</button>
+                </form>
+
+                <div class="space-y-3">
+                    <h4 class="text-xs font-orbitron font-bold uppercase tracking-wider text-gray-400">Aktive Teammitglieder</h4>
+                    <div id="member-list-container" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Event Details -->
+    <div id="detail-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel border border-cyan-400/40 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div id="detail-header" class="px-6 py-4 flex items-center justify-between border-b border-revoryx-cardBorder bg-revoryx-darkBlue">
+                <div class="flex items-center space-x-2">
+                    <span id="detail-type-badge" class="px-2.5 py-1 rounded text-xs font-orbitron font-bold uppercase"></span>
+                    <h3 id="detail-title" class="text-lg font-orbitron font-bold text-white truncate max-w-xs"></h3>
+                </div>
+                <button onclick="closeDetailModal()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="bg-revoryx-bg/90 p-3 rounded-xl border border-revoryx-cardBorder">
+                        <span class="text-gray-500 uppercase block font-semibold mb-1">Datum & Zeit</span>
+                        <span id="detail-date" class="text-gray-200 font-bold block"></span>
+                    </div>
+                    <div class="bg-revoryx-bg/90 p-3 rounded-xl border border-revoryx-cardBorder">
+                        <span class="text-gray-500 uppercase block font-semibold mb-1">Simulation</span>
+                        <span id="detail-sim" class="text-cyan-400 font-orbitron font-bold block"></span>
+                    </div>
+                </div>
+
+                <div class="bg-revoryx-bg/90 p-3 rounded-xl border border-revoryx-cardBorder">
+                    <span class="text-gray-500 uppercase block font-semibold mb-1">Beteiligte Fahrer</span>
+                    <div id="detail-members-container" class="flex flex-wrap gap-1.5 mt-1"></div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 text-xs">
+                    <div class="bg-revoryx-bg/90 p-3 rounded-xl border border-revoryx-cardBorder">
+                        <span class="text-gray-500 uppercase block font-semibold mb-1">Strecke</span>
+                        <span id="detail-track" class="text-gray-200 font-bold block"></span>
+                    </div>
+                </div>
+
+                <div class="bg-revoryx-bg/90 p-4 rounded-xl border border-revoryx-cardBorder">
+                    <span class="text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1 block">Setup & Stint Notizen</span>
+                    <p id="detail-desc" class="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed"></p>
+                </div>
+            </div>
+            <div class="bg-slate-900/90 px-6 py-3 border-t border-revoryx-cardBorder flex justify-between items-center">
+                <button id="detail-delete-btn" onclick="deleteCurrentEvent()" class="hidden text-red-400 hover:text-red-300 text-xs font-orbitron font-bold uppercase flex items-center gap-1 transition">
+                    <i class="fa-solid fa-trash"></i> Löschen
+                </button>
+                <div class="space-x-2 ml-auto flex items-center">
+                    <button id="detail-edit-btn" onclick="editCurrentEvent()" class="hidden px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-orbitron font-bold rounded-xl border border-cyan-500/30 transition">Bearbeiten</button>
+                    <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-orbitron font-bold rounded-xl transition">Schließen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 glass-panel border border-cyan-400/40 text-white px-5 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center space-x-3">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-cyan-400"></i>
+        <span id="toast-message" class="text-sm font-semibold">Aktion ausgeführt.</span>
+    </div>
+
+    <!-- Application Script -->
     <script>
-        // ===== EINSTELLUNGEN =====
-        // Ende der Wartung (optional). Leer lassen = kein Countdown. Beispiel: '2026-10-17T18:00:00+02:00'
-        const MAINTENANCE_END = '';
-        // Seite, die nach der Wartung geladen wird (wird automatisch geprüft)
-        const LIVE_PAGE = 'index.html';
-        const CHECK_EVERY_SECONDS = 60;
+        const SUPABASE_URL = 'https://hbuppukuizrnzrhwvfou.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'sb_publishable_atazSTKWDQ5VMKQqHxO0BA_GoPQzPDX';
 
-        // Countdown
-        (function () {
-            const end = MAINTENANCE_END ? new Date(MAINTENANCE_END).getTime() : NaN;
-            if (isNaN(end)) return;
-            document.getElementById('countdown').classList.add('on');
-            const p = n => String(n).padStart(2, '0');
-            function tick() {
-                let s = Math.max(0, Math.floor((end - Date.now()) / 1000));
-                document.getElementById('cd-d').textContent = p(Math.floor(s / 86400)); s %= 86400;
-                document.getElementById('cd-h').textContent = p(Math.floor(s / 3600)); s %= 3600;
-                document.getElementById('cd-m').textContent = p(Math.floor(s / 60));
-                document.getElementById('cd-s').textContent = p(s % 60);
+        let currentCategory = 'calendar';
+        let currentView = 'month';
+        let currentDate = new Date();
+        let selectedEventId = null;
+        
+        let currentRole = 'guest'; 
+        const ADMIN_PWD = 'admin2026';
+        const DEV_PWD = 'dev2026';
+
+        let supabaseClient = null;
+        let members = [];
+        let events = [];
+        let currentStintPlan = { event_id: '', plan_data: { start_time: '14:00', lap_seconds: 105, fuel_lap: 2.8, pit_duration: 2.5, stints: [] } };
+
+        window.onload = async function() {
+            initBackgroundCanvas();
+            initParallax();
+            updateViewButtons();
+            updateRoleUI();
+            initSupabasePermanent();
+        };
+
+        function initBackgroundCanvas() {
+            const canvas = document.getElementById('bg-canvas');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            let particles = [];
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
             }
-            tick(); setInterval(tick, 1000);
-        })();
+            window.addEventListener('resize', resize);
+            resize();
 
-        // Automatisch prüfen, ob die Hauptseite wieder erreichbar ist.
-        // Bleibt wirkungslos, solange dieselbe Wartungsseite unter dieser Adresse ausgeliefert wird.
-        setInterval(async () => {
-            try {
-                const r = await fetch(LIVE_PAGE + '?t=' + Date.now(), { cache: 'no-store' });
-                const t = r.ok ? await r.text() : '';
-                if (t && !t.includes('Wartungsmodus aktiv')) location.href = LIVE_PAGE;
-            } catch (e) { /* offline oder noch Wartung */ }
-        }, CHECK_EVERY_SECONDS * 1000);
-
-        // Hintergrund-Partikel (wie auf der Hauptseite)
-        (function () {
-            const c = document.getElementById('bg-canvas'), ctx = c.getContext('2d');
-            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-            let w, h, pts = [];
-            function size() {
-                w = c.width = innerWidth; h = c.height = innerHeight;
-                pts = Array.from({ length: Math.min(70, Math.floor(w * h / 18000)) }, () => ({
-                    x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .35, vy: (Math.random() - .5) * .35, r: Math.random() * 1.6 + .6
-                }));
+            const particleCount = window.innerWidth < 768 ? 25 : 60;
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.7,
+                    vy: (Math.random() - 0.5) * 0.7,
+                    radius: Math.random() * 2 + 1,
+                    color: Math.random() > 0.5 ? '#00f3ff' : '#0066ff'
+                });
             }
-            function draw() {
-                ctx.clearRect(0, 0, w, h);
-                pts.forEach((p, i) => {
+
+            function loop() {
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.02)';
+                ctx.lineWidth = 1;
+                const gridSize = 80;
+                for (let x = 0; x < width; x += gridSize) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+                }
+                for (let y = 0; y < height; y += gridSize) {
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+                }
+
+                particles.forEach((p, idx) => {
                     p.x += p.vx; p.y += p.vy;
-                    if (p.x < 0) p.x = w; if (p.x > w) p.x = 0; if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fillStyle = 'rgba(0,243,255,.55)'; ctx.fill();
-                    for (let j = i + 1; j < pts.length; j++) {
-                        const q = pts[j], d = Math.hypot(p.x - q.x, p.y - q.y);
-                        if (d < 130) { ctx.strokeStyle = `rgba(0,150,255,${.16 * (1 - d / 130)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+                    if (p.x < 0) p.x = width; if (p.x > width) p.x = 0;
+                    if (p.y < 0) p.y = height; if (p.y > height) p.y = 0;
+
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
+
+                    for (let j = idx + 1; j < particles.length; j++) {
+                        let p2 = particles[j];
+                        let dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+                        if (dist < 150) {
+                            ctx.strokeStyle = `rgba(0, 243, 255, ${0.1 * (1 - dist / 150)})`;
+                            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                        }
                     }
                 });
-                requestAnimationFrame(draw);
+                requestAnimationFrame(loop);
             }
-            size(); addEventListener('resize', size); draw();
-        })();
+            loop();
+        }
+
+        function initParallax() {
+            document.addEventListener('mousemove', (e) => {
+                const wrapper = document.getElementById('parallax-wrapper');
+                if (wrapper) {
+                    const x = (window.innerWidth / 2 - e.pageX) / 30;
+                    const y = (window.innerHeight / 2 - e.pageY) / 30;
+                    wrapper.style.transform = `translate(${x}px, ${y}px)`;
+                }
+            });
+        }
+
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            if(!toast) return;
+            document.getElementById('toast-message').textContent = msg;
+            document.getElementById('toast-icon').className = type === 'warning' ? 'fa-solid fa-triangle-exclamation text-yellow-400' : 'fa-solid fa-circle-check text-cyan-400';
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+
+        async function initSupabasePermanent() {
+            if (SUPABASE_URL.includes('YOUR_PROJECT_ID') || !SUPABASE_URL) {
+                updateDBBadge('CONFIG', 'text-amber-400 border-amber-500/40 bg-amber-950/90', 'bg-amber-400');
+                showToast('Achtung: Bitte trage deine Supabase-Daten im Code ein.', 'warning');
+                return;
+            }
+
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                updateDBBadge('ONLINE (SYNC)', 'text-emerald-400 border-emerald-500/40 bg-emerald-950/90', 'bg-emerald-400 animate-ping');
+                await fetchData();
+                setupRealtime();
+            } catch(e) {
+                console.error("Supabase Init Error:", e);
+                updateDBBadge('FEHLER', 'text-red-400 border-red-500/40 bg-red-950/90', 'bg-red-500');
+            }
+        }
+
+        function updateDBBadge(text, badgeClass, dotClass) {
+            const badge = document.getElementById('db-status-badge');
+            const dot = document.getElementById('live-indicator');
+            if(!badge || !dot) return;
+            badge.textContent = text;
+            badge.className = `text-[10px] font-orbitron font-bold px-2 py-0.5 rounded shadow border ${badgeClass}`;
+            dot.className = `w-2 h-2 rounded-full ${dotClass}`;
+        }
+
+        function openLoginModal() { document.getElementById('login-modal').classList.remove('hidden'); document.getElementById('login-pwd').value = ''; }
+        function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); }
+
+        function executeLogin() {
+            const pwd = document.getElementById('login-pwd').value;
+            if (pwd === DEV_PWD) {
+                currentRole = 'dev';
+                showToast('Erfolgreich als Developer angemeldet!');
+                closeLoginModal();
+                updateRoleUI();
+            } else if (pwd === ADMIN_PWD) {
+                currentRole = 'admin';
+                showToast('Erfolgreich als Admin angemeldet!');
+                closeLoginModal();
+                updateRoleUI();
+            } else {
+                showToast('Falsches Passwort!', 'warning');
+            }
+        }
+
+        function logout() {
+            currentRole = 'guest';
+            showToast('Erfolgreich abgemeldet.');
+            updateRoleUI();
+        }
+
+        function updateRoleUI() {
+            const isGuest = currentRole === 'guest';
+            const badge = document.getElementById('role-badge');
+            
+            document.getElementById('login-toggle-btn').classList.toggle('hidden', !isGuest);
+            document.getElementById('logout-btn').classList.toggle('hidden', isGuest);
+            
+            const rosterBtn = document.getElementById('nav-roster-btn');
+            const eventBtn = document.getElementById('nav-event-btn');
+            const stintSaveBtn = document.getElementById('stint-save-btn');
+            
+            if (!isGuest) {
+                rosterBtn.classList.remove('hidden'); rosterBtn.classList.add('flex');
+                eventBtn.classList.remove('hidden'); eventBtn.classList.add('flex');
+                if(stintSaveBtn) stintSaveBtn.classList.remove('hidden');
+                badge.textContent = currentRole === 'dev' ? 'Developer' : 'Admin';
+                badge.className = 'px-3 py-1 rounded-lg text-xs font-orbitron font-bold uppercase shadow ' + 
+                    (currentRole === 'dev' ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-cyan-950 text-cyan-300 border border-cyan-500/40');
+                document.getElementById('footer-role-text').textContent = currentRole === 'dev' ? 'Modus: Developer' : 'Modus: Admin';
+            } else {
+                rosterBtn.classList.remove('flex'); rosterBtn.classList.add('hidden');
+                eventBtn.classList.remove('flex'); eventBtn.classList.add('hidden');
+                if(stintSaveBtn) stintSaveBtn.classList.add('hidden');
+                badge.textContent = 'Gast';
+                badge.className = 'px-3 py-1 rounded-lg text-xs font-orbitron font-bold uppercase bg-slate-800 text-gray-300 border border-slate-700 shadow';
+                document.getElementById('footer-role-text').textContent = 'Modus: Gast (Nur Ansicht)';
+            }
+
+            renderCalendar(); 
+            populateStintEventDropdown();
+            if (currentStintPlan && currentStintPlan.event_id) renderStintTable();
+        }
+
+        async function fetchData() {
+            if (!supabaseClient) return;
+            try {
+                const { data: mData } = await supabaseClient.from('members').select('*');
+                members = mData || [];
+
+                const { data: eData } = await supabaseClient.from('events').select('*');
+                events = (eData || []).map(e => {
+                    let mList = [];
+                    if (Array.isArray(e.members)) mList = e.members;
+                    else if (typeof e.members === 'string') {
+                        try { mList = JSON.parse(e.members); } catch(err) { mList = []; }
+                    }
+                    return { ...e, members: mList };
+                });
+
+                populateMemberSelects();
+                updateStats();
+                renderCalendar();
+                populateStintEventDropdown();
+            } catch(err) {
+                console.error('Fetch error:', err);
+            }
+        }
+
+        function setupRealtime() {
+            if (!supabaseClient) return;
+            supabaseClient.channel('public:db_changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => fetchData())
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => fetchData())
+                .subscribe();
+        }
+
+        function updateStats() {
+            document.getElementById('stat-races').textContent = events.filter(e => e.type === 'Rennen').length;
+            document.getElementById('stat-qualis').textContent = events.filter(e => e.type === 'Qualifying').length;
+            document.getElementById('stat-trainings').textContent = events.filter(e => e.type === 'Training').length;
+            document.getElementById('stat-drivers').textContent = members.length;
+        }
+
+        function switchCategory(cat) {
+            currentCategory = cat;
+            const calView = document.getElementById('category-calendar-view');
+            const stintView = document.getElementById('category-stint-view');
+            
+            const btnCal = document.getElementById('tab-calendar-btn');
+            const btnStint = document.getElementById('tab-stint-btn');
+            const mBtnCal = document.getElementById('m-tab-calendar-btn');
+            const mBtnStint = document.getElementById('m-tab-stint-btn');
+
+            if (cat === 'calendar') {
+                calView.classList.remove('hidden');
+                stintView.classList.add('hidden');
+                if(btnCal) btnCal.className = 'px-5 py-2 rounded-xl text-xs font-orbitron font-bold uppercase tracking-wider bg-gradient-to-r from-cyan-400 to-blue-600 text-black shadow neon-glow-cyan transition';
+                if(btnStint) btnStint.className = 'px-5 py-2 rounded-xl text-xs font-orbitron font-bold uppercase tracking-wider text-gray-400 hover:text-white transition';
+                if(mBtnCal) mBtnCal.className = 'flex-1 py-1.5 text-center text-xs font-orbitron font-bold uppercase rounded-lg bg-cyan-400 text-black shadow';
+                if(mBtnStint) mBtnStint.className = 'flex-1 py-1.5 text-center text-xs font-orbitron font-bold uppercase rounded-lg text-gray-400';
+                renderCalendar();
+            } else {
+                calView.classList.add('hidden');
+                stintView.classList.remove('hidden');
+                if(btnCal) btnCal.className = 'px-5 py-2 rounded-xl text-xs font-orbitron font-bold uppercase tracking-wider text-gray-400 hover:text-white transition';
+                if(btnStint) btnStint.className = 'px-5 py-2 rounded-xl text-xs font-orbitron font-bold uppercase tracking-wider bg-gradient-to-r from-cyan-400 to-blue-600 text-black shadow neon-glow-cyan transition';
+                if(mBtnCal) mBtnCal.className = 'flex-1 py-1.5 text-center text-xs font-orbitron font-bold uppercase rounded-lg text-gray-400';
+                if(mBtnStint) mBtnStint.className = 'flex-1 py-1.5 text-center text-xs font-orbitron font-bold uppercase rounded-lg bg-cyan-400 text-black shadow';
+                populateStintEventDropdown();
+            }
+        }
+
+        function switchView(v) {
+            currentView = v;
+            updateViewButtons();
+            renderCalendar();
+        }
+
+        function updateViewButtons() {
+            ['month', 'week', 'agenda'].forEach(v => {
+                const btn = document.getElementById(`view-${v}-btn`);
+                if(!btn) return;
+                if (v === currentView) {
+                    btn.className = 'px-4 py-1.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider bg-gradient-to-r from-cyan-400 to-blue-600 text-black shadow neon-glow-cyan';
+                } else {
+                    btn.className = 'px-4 py-1.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider text-gray-400 hover:text-white';
+                }
+            });
+        }
+
+        function changeDate(dir) {
+            if (currentView === 'month') {
+                currentDate.setMonth(currentDate.getMonth() + dir);
+            } else if (currentView === 'week') {
+                currentDate.setDate(currentDate.getDate() + (dir * 7));
+            } else {
+                currentDate.setMonth(currentDate.getMonth() + dir);
+            }
+            renderCalendar();
+        }
+
+        function setToday() {
+            currentDate = new Date();
+            mobileSelectedDate = null;
+            renderCalendar();
+        }
+
+        function populateMemberSelects() {
+            const filterSelect = document.getElementById('filter-member');
+            const checkboxesContainer = document.getElementById('event-members-checkboxes');
+            if(!filterSelect || !checkboxesContainer) return;
+            
+            const fVal = filterSelect.value;
+            let fOpt = '<option value="">Alle Fahrer</option>';
+            members.forEach(m => fOpt += `<option value="${m.id}">${m.name}</option>`);
+            filterSelect.innerHTML = fOpt; filterSelect.value = fVal;
+
+            let cHtml = '';
+            if (members.length === 0) {
+                cHtml = '<p class="text-[10px] text-amber-400 col-span-2">Keine Fahrer in der DB.</p>';
+            } else {
+                members.forEach(m => {
+                    cHtml += `
+                        <label class="flex items-center space-x-2 cursor-pointer p-1.5 rounded hover:bg-slate-800 transition">
+                            <input type="checkbox" name="event_members" value="${m.id}" class="rounded bg-revoryx-card border-slate-700 text-cyan-400 focus:ring-cyan-400">
+                            <span class="w-3 h-3 rounded-full inline-block shadow" style="background-color: ${m.color}"></span>
+                            <span class="text-xs text-gray-200 font-semibold truncate">${m.name}</span>
+                        </label>
+                    `;
+                });
+            }
+            checkboxesContainer.innerHTML = cHtml;
+            renderMemberList();
+        }
+
+        function getFilteredEvents() {
+            const fMem = document.getElementById('filter-member')?.value || '';
+            const fType = document.getElementById('filter-type')?.value || '';
+
+            return events.filter(e => {
+                const eMembers = e.members || [];
+                if (fMem && !eMembers.includes(fMem)) return false;
+                if (fType && e.type !== fType) return false;
+                return true;
+            });
+        }
+
+        function getTypeBadgeHTML(type) {
+            let icon = 'fa-flag-checkered'; let bgClass = 'bg-cyan-400/10 text-cyan-400 border-cyan-400/30';
+            if (type === 'Qualifying') { icon = 'fa-stopwatch'; bgClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30'; } 
+            else if (type === 'Training') { icon = 'fa-gauge-high'; bgClass = 'bg-blue-500/10 text-blue-400 border-blue-500/30'; } 
+            else if (type === 'Besprechung') { icon = 'fa-users'; bgClass = 'bg-purple-500/10 text-purple-400 border-purple-500/30'; }
+            return `<span class="inline-flex items-center gap-1 text-[10px] font-orbitron font-bold px-1.5 py-0.5 rounded border ${bgClass} shadow-sm"><i class="fa-solid ${icon}"></i>${type}</span>`;
+        }
+
+        function renderMemberBadgesHTML(memberIds) {
+            const list = memberIds || [];
+            if (list.length === 0) return '<span class="text-[10px] text-gray-500">Keine Fahrer</span>';
+            let html = '<div class="flex items-center gap-1 flex-wrap">';
+            list.forEach(mId => {
+                const member = members.find(m => m.id === mId);
+                if (member) {
+                    html += `<span class="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-revoryx-bg/90 border border-revoryx-cardBorder text-gray-200"><span class="w-2 h-2 rounded-full inline-block shadow-sm" style="background-color: ${member.color}"></span>${member.name}</span>`;
+                }
+            });
+            return html + '</div>';
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendar-container');
+            const periodLabel = document.getElementById('current-period-label');
+            if (!container || !periodLabel) return;
+
+            const filteredEvents = getFilteredEvents();
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            if (currentView === 'month') {
+                periodLabel.textContent = currentDate.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+                container.innerHTML = generateMonthView(year, month, filteredEvents);
+            } else if (currentView === 'week') {
+                const startOfWeek = new Date(currentDate);
+                const day = startOfWeek.getDay() === 0 ? 6 : startOfWeek.getDay() - 1;
+                startOfWeek.setDate(startOfWeek.getDate() - day);
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                periodLabel.textContent = `${startOfWeek.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} - ${endOfWeek.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+                container.innerHTML = generateWeekView(startOfWeek, filteredEvents);
+            } else if (currentView === 'agenda') {
+                periodLabel.textContent = 'Alle Termine';
+                container.innerHTML = generateAgendaView(filteredEvents);
+            }
+        }
+
+        function generateMonthView(year, month, evs) {
+            const firstDay = new Date(year, month, 1).getDay();
+            const startPad = firstDay === 0 ? 6 : firstDay - 1;
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            let html = `<div class="hidden md:flex glass-panel rounded-2xl shadow-2xl overflow-hidden flex-col flex-grow">
+                <div class="grid grid-cols-7 bg-revoryx-darkBlue border-b border-revoryx-cardBorder text-center font-orbitron text-xs font-bold text-cyan-400 py-3">
+                    ${['MO', 'DI', 'MI', 'DO', 'FR', 'SA', 'SO'].map(d => `<div>${d}</div>`).join('')}
+                </div>
+                <div class="grid grid-cols-7 flex-grow bg-revoryx-bg/40 divide-x divide-y divide-revoryx-cardBorder">`;
+
+            for (let i = 0; i < startPad; i++) {
+                html += `<div class="bg-revoryx-bg/20 h-32 sm:h-36 p-1.5 opacity-20"></div>`;
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = evs.filter(e => e.date === dateStr);
+                const isToday = dateStr === todayStr;
+
+                html += `<div class="h-32 sm:h-36 p-1.5 flex flex-col transition hover:bg-slate-900/40 group relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-1 shrink-0">
+                        <span class="font-orbitron text-xs font-bold ${isToday ? 'bg-cyan-400 text-black px-1.5 py-0.5 rounded shadow-lg neon-glow-cyan' : 'text-gray-400'}">${day}</span>
+                        ${currentRole !== 'guest' ? `<button onclick="openEventModalWithDate('${dateStr}')" class="opacity-0 group-hover:opacity-100 text-cyan-400 hover:text-white text-[10px] transition bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-700 shadow"><i class="fa-solid fa-plus"></i></button>` : ''}
+                    </div>
+                    
+                    <div class="flex-grow flex flex-col gap-1 overflow-y-auto pr-1 day-events-scroll">`;
+
+                dayEvents.forEach(e => {
+                    const eMembers = e.members || [];
+                    const pColor = eMembers.length > 0 && members.find(m => m.id === eMembers[0]) ? members.find(m => m.id === eMembers[0]).color : '#00f3ff';
+                    
+                    html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="glass-card hover:bg-slate-800/90 border-l-4 p-1.5 rounded-lg cursor-pointer transition shadow flex flex-col gap-1 shrink-0">
+                        <div class="flex items-center justify-between gap-1">
+                            ${getTypeBadgeHTML(e.type)}
+                            <span class="text-[9px] text-cyan-300 font-bold bg-cyan-950/60 px-1 py-0.2 rounded whitespace-nowrap">${e.time || ''}</span>
+                        </div>
+                        <div class="text-[11px] font-bold text-white leading-snug break-words">${e.title}</div>
+                        <div class="pt-0.5 border-t border-slate-800/80">
+                            ${renderMemberBadgesHTML(eMembers)}
+                        </div>
+                    </div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            return html + `</div></div>` + mobileMonthView(year, month, totalDays, startPad, evs, todayStr);
+        }
+
+        function generateWeekView(startOfWeek, evs) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            let html = `<div class="grid grid-cols-1 md:grid-cols-7 gap-3 flex-grow">`;
+
+            for (let i = 0; i < 7; i++) {
+                let d = new Date(startOfWeek); d.setDate(startOfWeek.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const dayEvents = evs.filter(e => e.date === dateStr);
+                const isToday = dateStr === todayStr;
+
+                html += `<div class="glass-card ${isToday ? 'border-cyan-400 shadow-xl neon-glow-cyan' : 'border-revoryx-cardBorder'} rounded-2xl p-3 flex flex-col md:min-h-[300px]">
+                    <div class="flex items-center justify-between pb-2 border-b border-revoryx-cardBorder mb-3">
+                        <div><span class="text-[10px] font-orbitron font-bold uppercase text-gray-400 block">${['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'][i]}</span>
+                        <span class="text-sm font-orbitron font-bold ${isToday ? 'text-cyan-400' : 'text-white'}">${d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit'})}</span></div>
+                        ${currentRole !== 'guest' ? `<button onclick="openEventModalWithDate('${dateStr}')" class="w-7 h-7 bg-revoryx-bg hover:bg-slate-800 text-cyan-400 rounded-lg flex items-center justify-center border border-slate-700 shadow transition"><i class="fa-solid fa-plus text-xs"></i></button>` : ''}
+                    </div>
+                    <div class="flex-grow flex flex-col gap-2.5 overflow-y-auto md:max-h-[500px] day-events-scroll pr-1">`;
+
+                if (dayEvents.length === 0) html += `<div class="text-center py-2 md:py-8 text-xs text-gray-600 font-orbitron">Kein Event</div>`;
+                else dayEvents.forEach(e => {
+                    const eMembers = e.members || [];
+                    const pColor = eMembers.length > 0 && members.find(m => m.id === eMembers[0]) ? members.find(m => m.id === eMembers[0]).color : '#00f3ff';
+                    html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="bg-revoryx-bg/90 hover:bg-slate-800 border-l-[5px] p-2.5 rounded-xl cursor-pointer transition shadow border border-revoryx-cardBorder flex flex-col gap-1.5 shrink-0">
+                        <div class="flex items-center justify-between flex-wrap gap-1">
+                            ${getTypeBadgeHTML(e.type)}
+                            <span class="text-[10px] font-bold text-cyan-300 bg-cyan-950/40 px-1.5 py-0.5 rounded">${e.time || ''}</span>
+                        </div>
+                        <h4 class="text-sm md:text-xs font-bold text-white leading-snug break-words">${e.title}</h4>
+                        <div class="pt-1.5 border-t border-revoryx-cardBorder">${renderMemberBadgesHTML(eMembers)}</div>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            }
+            return html + `</div>`;
+        }
+
+        function generateAgendaView(evs) {
+            if (evs.length === 0) return `<div class="glass-panel rounded-2xl p-12 text-center text-gray-500 font-orbitron shadow-xl"><i class="fa-solid fa-calendar-xmark text-4xl mb-3 text-slate-700"></i><p>Keine Termine vorhanden.</p></div>`;
+            let html = `<div class="glass-panel rounded-2xl overflow-hidden divide-y divide-revoryx-cardBorder shadow-xl">`;
+            [...evs].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(e => {
+                const eMembers = e.members || [];
+                const pColor = eMembers.length > 0 && members.find(m => m.id === eMembers[0]) ? members.find(m => m.id === eMembers[0]).color : '#00f3ff';
+                html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="p-4 sm:p-5 hover:bg-slate-800/60 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer border-l-[5px]">
+                    <div class="space-y-1.5 flex-grow">
+                        <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+                            ${getTypeBadgeHTML(e.type)}
+                            <span class="text-xs font-orbitron font-bold text-gray-400 bg-revoryx-bg px-2 py-0.5 rounded border border-slate-700">${e.sim}</span>
+                        </div>
+                        <h3 class="text-base font-bold text-white break-words">${e.title}</h3>
+                        <div class="pt-1">${renderMemberBadgesHTML(eMembers)}</div>
+                    </div>
+                    <div class="text-left md:text-right flex md:flex-col items-center md:items-end justify-between w-full md:w-auto bg-revoryx-bg/80 md:bg-transparent p-2.5 md:p-0 rounded-xl">
+                        <span class="text-xs font-orbitron font-bold text-cyan-300">${new Date(e.date).toLocaleDateString('de-DE', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'})}</span>
+                        <span class="text-xs text-gray-400 font-bold bg-cyan-950/40 px-2 py-0.5 rounded mt-0.5">${e.time || ''} Uhr</span>
+                    </div>
+                </div>`;
+            });
+            return html + `</div>`;
+        }
+
+        // --- MOBILE MONATSANSICHT ---
+        let mobileSelectedDate = null;
+        function eventColor(e) {
+            const first = (e.members || [])[0], m = first ? members.find(x => x.id === first) : null;
+            return m ? m.color : '#00f3ff';
+        }
+        function mobileEventCard(e) {
+            return `<div onclick="openDetailModal('${stintEsc(e.id)}')" style="border-left-color:${stintEsc(eventColor(e))}" class="bg-revoryx-bg/90 active:bg-slate-800 border-l-[5px] border border-revoryx-cardBorder p-4 rounded-xl cursor-pointer flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-2 flex-wrap">${getTypeBadgeHTML(e.type)}<span class="text-xs font-bold text-cyan-300 bg-cyan-950/40 px-2 py-1 rounded">${stintEsc(e.time || '')}${e.time ? ' Uhr' : ''}</span></div>
+                <h4 class="text-base font-bold text-white leading-snug break-words">${stintEsc(e.title)}</h4>
+                ${e.sim ? `<div class="text-xs text-gray-400 font-semibold"><i class="fa-solid fa-gamepad mr-1"></i>${stintEsc(e.sim)}${e.track ? ' · ' + stintEsc(e.track) : ''}</div>` : ''}
+                <div class="pt-2 border-t border-revoryx-cardBorder">${renderMemberBadgesHTML(e.members || [])}</div>
+            </div>`;
+        }
+        function mobileMonthView(year, month, totalDays, startPad, evs, todayStr) {
+            const pre = `${year}-${String(month + 1).padStart(2, '0')}-`;
+            if (!mobileSelectedDate || !mobileSelectedDate.startsWith(pre)) mobileSelectedDate = todayStr.startsWith(pre) ? todayStr : pre + '01';
+            let cells = '<div class="m-day empty"></div>'.repeat(startPad);
+            for (let d = 1; d <= totalDays; d++) {
+                const ds = pre + String(d).padStart(2, '0');
+                const de = evs.filter(e => e.date === ds);
+                const dots = de.slice(0, 3).map(e => `<i style="background:${stintEsc(eventColor(e))}"></i>`).join('') + (de.length > 3 ? '<b>+</b>' : '');
+                cells += `<button type="button" class="m-day${ds === todayStr ? ' today' : ''}${ds === mobileSelectedDate ? ' sel' : ''}" onclick="selectMobileDay('${ds}')"><span class="n">${d}</span><span class="m-dots">${dots}</span></button>`;
+            }
+            const [y, mo, dd] = mobileSelectedDate.split('-').map(Number);
+            const label = new Date(y, mo - 1, dd).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' });
+            const dayEvs = evs.filter(e => e.date === mobileSelectedDate).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            return `<div class="md:hidden glass-panel rounded-2xl shadow-2xl overflow-hidden">
+                    <div class="grid grid-cols-7 bg-revoryx-darkBlue border-b border-revoryx-cardBorder text-center font-orbitron text-[11px] font-bold text-cyan-400 py-2.5">${['MO', 'DI', 'MI', 'DO', 'FR', 'SA', 'SO'].map(x => `<div>${x}</div>`).join('')}</div>
+                    <div class="m-cal">${cells}</div>
+                </div>
+                <div id="m-day-list" class="md:hidden mt-4 flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <h3 class="font-orbitron text-sm font-bold text-cyan-300 capitalize">${label}</h3>
+                        ${currentRole !== 'guest' ? `<button onclick="openEventModalWithDate('${mobileSelectedDate}')" class="shrink-0 bg-gradient-to-r from-cyan-400 to-blue-600 text-black px-3.5 py-2.5 rounded-xl text-xs font-orbitron font-black uppercase"><i class="fa-solid fa-plus mr-1"></i> Termin</button>` : ''}
+                    </div>
+                    ${dayEvs.length ? dayEvs.map(mobileEventCard).join('') : '<div class="glass-panel rounded-xl p-6 text-center text-sm text-gray-500 font-orbitron">Keine Termine an diesem Tag</div>'}
+                </div>`;
+        }
+        function selectMobileDay(ds) {
+            mobileSelectedDate = ds;
+            renderCalendar();
+            const el = document.getElementById('m-day-list');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // --- STINTPLANER LOGIC & ADVANCED FORMULAS ---
+        function populateStintEventDropdown() {
+            const select = document.getElementById('stint-event-select');
+            if(!select) return;
+            const currentVal = select.value;
+            const raceEvents = events.filter(e => e.type === 'Rennen');
+            
+            let html = '<option value="">-- Event für Stintplan wählen --</option>';
+            raceEvents.forEach(e => {
+                html += `<option value="${e.id}">${e.date} - ${e.title} (${e.sim})</option>`;
+            });
+            select.innerHTML = html;
+            select.value = currentVal;
+        }
+
+        async function loadStintPlan() {
+            const eventId = document.getElementById('stint-event-select').value;
+            const actionsBar = document.getElementById('stint-actions-bar');
+            
+            if (!eventId) {
+                if(actionsBar) actionsBar.classList.add('hidden');
+                document.getElementById('stint-table-body').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500 font-orbitron">Bitte wähle ein Rennen aus.</td></tr>';
+                return;
+            }
+
+            if(actionsBar) actionsBar.classList.remove('hidden');
+
+            let defaultPlan = { 
+                start_time: '14:00', 
+                lap_seconds: 105, 
+                fuel_lap: 2.8, 
+                pit_duration: 2.5, 
+                stints: defaultStints() 
+            };
+
+            if (supabaseClient) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('stint_plans')
+                        .select('*')
+                        .eq('event_id', eventId)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (error) {
+                        console.error("Supabase Ladefehler:", error);
+                    }
+
+                    if (data && data.length > 0 && data[0].plan_data) {
+                        currentStintPlan = data[0];
+                    } else {
+                        currentStintPlan = { 
+                            id: 'sp_' + eventId,
+                            event_id: eventId, 
+                            plan_data: defaultPlan 
+                        };
+                    }
+                } catch(e) {
+                    console.error("Verbindungsfehler:", e);
+                    currentStintPlan = { 
+                        id: 'sp_' + eventId,
+                        event_id: eventId, 
+                        plan_data: defaultPlan 
+                    };
+                }
+            } else {
+                currentStintPlan = { 
+                    id: 'sp_' + eventId,
+                    event_id: eventId, 
+                    plan_data: defaultPlan 
+                };
+            }
+
+            document.getElementById('stint-start-time').value = currentStintPlan.plan_data.start_time || '14:00';
+            document.getElementById('stint-lap-seconds').value = fmtLapTime(currentStintPlan.plan_data.lap_seconds || 105);
+            document.getElementById('stint-fuel-lap').value = String(currentStintPlan.plan_data.fuel_lap || 2.8).replace('.', ',');
+            document.getElementById('stint-pit-duration').value = String(currentStintPlan.plan_data.pit_duration ?? 2.5).replace('.', ',');
+
+            renderStintTable();
+        }
+
+        function defaultStints() {
+            return [
+                { stint: 1, driver: members[0]?.id || '', fuel: 100 },
+                { stint: 2, driver: members[1]?.id || members[0]?.id || '', fuel: 100 },
+                { stint: 3, driver: members[2]?.id || members[0]?.id || '', fuel: 100 }
+            ];
+        }
+
+        function stintEsc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function stintNum(v) { const n = parseFloat(String(v ?? '').trim().replace(',', '.')); return isNaN(n) ? 0 : n; }
+        function parseLapTime(v) { // "1:45.320" oder "105,3" -> Sekunden
+            const s = String(v ?? '').trim().replace(',', '.');
+            if (!s) return 0;
+            if (!s.includes(':')) return stintNum(s);
+            const p = s.split(':');
+            if (p.length > 3 || p.some(x => x === '' || isNaN(x))) return 0;
+            return p.map(Number).reduce((acc, x) => acc * 60 + x, 0);
+        }
+        function fmtLapTime(sec) {
+            sec = Math.round((Number(sec) || 0) * 1000) / 1000;
+            const m = Math.floor(sec / 60);
+            return m + ':' + (sec - m * 60).toFixed(3).padStart(6, '0').replace(/\.?0+$/, '');
+        }
+        function stintClock(sec) {
+            sec = Math.floor(sec); const day = Math.floor(sec / 86400);
+            const h = Math.floor(sec / 3600) % 24, m = Math.floor((sec % 3600) / 60);
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` + (day > 0 ? `<span style="font-size:.65rem;color:#6b7686"> +${day}</span>` : '');
+        }
+        function stintDur(sec) { sec = Math.floor(sec); return `${Math.floor(sec / 3600)}h ${String(Math.floor((sec % 3600) / 60)).padStart(2, '0')}m`; }
+
+        function computeStints() {
+            const val = id => document.getElementById(id).value;
+            const lapSec = parseLapTime(val('stint-lap-seconds')) || 105;
+            const fuelLap = stintNum(val('stint-fuel-lap')) || 2.8;
+            const pitRaw = val('stint-pit-duration').trim();
+            const pitSec = (pitRaw === '' ? 2.5 : stintNum(pitRaw)) * 60;
+            const [h, m] = (val('stint-start-time') || '14:00').split(':').map(Number);
+            let clock = (h || 0) * 3600 + (m || 0) * 60, totalSec = 0, totalLaps = 0;
+            const stints = currentStintPlan.plan_data.stints || [];
+            const rows = stints.map((s, i) => {
+                const laps = Math.floor(stintNum(s.fuel) / fuelLap + 1e-9);
+                s.laps = laps;
+                const dur = laps * lapSec, row = { start: clock, end: clock + dur, laps, dur };
+                totalSec += dur; totalLaps += laps;
+                clock += dur + pitSec;
+                if (i < stints.length - 1) totalSec += pitSec; // Boxenstopp nur zwischen den Stints
+                return row;
+            });
+            return { rows, totalSec, totalLaps, lapSec, endClock: rows.length ? rows[rows.length - 1].end : null };
+        }
+
+        function updateStintCalc() {
+            const tbody = document.getElementById('stint-table-body');
+            const stints = currentStintPlan.plan_data.stints || [];
+            if (!tbody) return;
+            if (tbody.querySelectorAll('tr[data-i]').length !== stints.length) { renderStintTable(); return; }
+            const r = computeStints();
+            r.rows.forEach((x, i) => {
+                const tr = tbody.querySelector(`tr[data-i="${i}"]`);
+                tr.querySelector('[data-c="start"]').innerHTML = stintClock(x.start);
+                tr.querySelector('[data-c="laps"]').textContent = x.laps;
+                tr.querySelector('[data-c="dur"]').textContent = stintDur(x.dur);
+                tr.querySelector('[data-c="end"]').innerHTML = stintClock(x.end);
+            });
+            document.getElementById('total-race-duration').textContent = stintDur(r.totalSec);
+            document.getElementById('total-race-laps').textContent = r.totalLaps;
+            document.getElementById('total-race-stints').textContent = stints.length;
+            document.getElementById('total-race-end').innerHTML = r.endClock === null ? '--:--' : stintClock(r.endClock);
+            const lapIn = document.getElementById('stint-lap-seconds').value;
+            document.getElementById('stint-lap-hint').textContent = lapIn.includes(':') ? `= ${String(r.lapSec).replace('.', ',')} Sekunden` : `= ${fmtLapTime(r.lapSec)} min`;
+        }
+
+        // Baut die Tabelle nur bei Strukturänderung neu auf (Eingabefelder behalten beim Tippen den Fokus)
+        function renderStintTable() {
+            const tbody = document.getElementById('stint-table-body');
+            if (!tbody) return;
+            const stints = currentStintPlan.plan_data.stints || [];
+            const editable = currentRole !== 'guest', dis = editable ? '' : 'disabled';
+            const opts = sel => '<option value="">– Fahrer wählen –</option>' + members.map(m => `<option value="${stintEsc(m.id)}"${sel === m.id ? ' selected' : ''}>${stintEsc(m.name)}</option>`).join('');
+
+            tbody.innerHTML = stints.length ? stints.map((s, i) => `
+                <tr data-i="${i}">
+                    <td><span class="stint-badge">${i + 1}</span></td>
+                    <td data-label="Fahrer"><select class="stint-select" ${dis} onchange="updateStintField(${i}, 'driver', this.value)">${opts(s.driver)}</select></td>
+                    <td class="num" data-label="Start"><span data-c="start" class="stint-calc" style="color:#67e8f9"></span></td>
+                    <td data-label="Tankinhalt" style="width:11rem"><label class="stint-field"><input type="text" inputmode="decimal" autocomplete="off" ${dis} value="${stintEsc(s.fuel)}" onfocus="this.select()" oninput="updateStintField(${i}, 'fuel', this.value); calculateStints();"><span class="unit">Liter</span></label></td>
+                    <td class="num" data-label="Runden"><span data-c="laps" class="stint-calc" style="color:#fff"></span> <span style="font-size:.75rem;color:#6b7686">Rd.</span></td>
+                    <td class="num" data-label="Dauer"><span data-c="dur" class="stint-calc" style="color:#cbd5e1"></span></td>
+                    <td class="num" data-label="Ende"><span data-c="end" class="stint-calc" style="color:#cbd5e1"></span></td>
+                    <td class="text-center act-col">${editable ? `<button onclick="removeStintRow(${i})" class="text-red-400 hover:text-red-300 p-2" title="Stint löschen"><i class="fa-solid fa-trash-can"></i></button>` : ''}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-orbitron">Noch keine Stints vorhanden.</td></tr>';
+
+            document.querySelectorAll('.act-col').forEach(el => el.style.display = editable ? '' : 'none');
+            updateStintCalc();
+        }
+
+        function calculateStints() {
+            updateStintCalc();
+        }
+
+        function updateStintField(idx, field, val) {
+            if(currentStintPlan.plan_data.stints[idx]) {
+                currentStintPlan.plan_data.stints[idx][field] = val;
+            }
+        }
+
+        function addStintRow() {
+            if(currentRole === 'guest') return;
+            currentStintPlan.plan_data.stints.push({ stint: currentStintPlan.plan_data.stints.length + 1, driver: '', fuel: 100 });
+            renderStintTable();
+        }
+
+        function removeStintRow(idx) {
+            if(currentRole === 'guest') return;
+            currentStintPlan.plan_data.stints.splice(idx, 1);
+            renderStintTable();
+        }
+
+        async function saveStintPlan() {
+            if (currentRole === 'guest' || !supabaseClient) return;
+            const eventId = document.getElementById('stint-event-select').value;
+            if(!eventId) { showToast('Bitte Event wählen', 'warning'); return; }
+
+            currentStintPlan.plan_data.start_time = document.getElementById('stint-start-time').value;
+            currentStintPlan.plan_data.lap_seconds = parseLapTime(document.getElementById('stint-lap-seconds').value) || 105;
+            currentStintPlan.plan_data.fuel_lap = stintNum(document.getElementById('stint-fuel-lap').value) || 2.8;
+            currentStintPlan.plan_data.pit_duration = stintNum(document.getElementById('stint-pit-duration').value);
+
+            const planObj = {
+                id: 'sp_' + eventId,
+                event_id: eventId,
+                plan_data: currentStintPlan.plan_data
+            };
+
+            const { data, error } = await supabaseClient
+                .from('stint_plans')
+                .upsert(planObj, { onConflict: 'id' })
+                .select();
+
+            if(error) {
+                showToast('Fehler beim Speichern: ' + error.message, 'warning');
+            } else {
+                if (data && data.length > 0) {
+                    currentStintPlan = data[0];
+                }
+                showToast('Stintplan erfolgreich in DB gespeichert!');
+            }
+        }
+
+        // --- EVENT & MEMBER MODALS ---
+        function openEventModal() {
+            if (currentRole === 'guest') { showToast('Keine Berechtigung.', 'warning'); return; }
+            document.getElementById('event-modal-title').innerHTML = '<i class="fa-solid fa-calendar-plus text-cyan-400"></i> TERMIN ERSTELLEN';
+            document.getElementById('event-form').reset();
+            document.getElementById('event-id').value = '';
+            document.getElementById('event-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('event-modal').classList.remove('hidden');
+        }
+
+        function openEventModalWithDate(dStr) {
+            if (currentRole === 'guest') return;
+            openEventModal();
+            document.getElementById('event-date').value = dStr;
+        }
+
+        function closeEventModal() { document.getElementById('event-modal').classList.add('hidden'); }
+
+        async function saveEvent(e) {
+            e.preventDefault();
+            if (currentRole === 'guest' || !supabaseClient) return;
+
+            const checkedMembers = Array.from(document.querySelectorAll('input[name="event_members"]:checked')).map(el => el.value);
+            if (checkedMembers.length === 0) { showToast('Mindestens ein Fahrer erforderlich!', 'warning'); return; }
+
+            const eventObj = { 
+                id: document.getElementById('event-id').value || 'e_' + Date.now(), 
+                title: document.getElementById('event-title').value, 
+                type: document.getElementById('event-type').value, 
+                members: checkedMembers, 
+                sim: document.getElementById('event-sim').value, 
+                track: document.getElementById('event-track').value, 
+                date: document.getElementById('event-date').value, 
+                time: document.getElementById('event-time').value, 
+                duration: document.getElementById('event-duration').value, 
+                desc: document.getElementById('event-desc').value 
+            };
+
+            const { error } = await supabaseClient.from('events').upsert(eventObj);
+            if (error) showToast('Fehler: ' + error.message, 'warning');
+            else { closeEventModal(); showToast('Termin gespeichert!'); fetchData(); }
+        }
+
+        function openDetailModal(id) {
+            selectedEventId = id; const ev = events.find(e => e.id === id); if (!ev) return;
+            document.getElementById('detail-title').textContent = ev.title;
+            document.getElementById('detail-type-badge').innerHTML = getTypeBadgeHTML(ev.type);
+            document.getElementById('detail-date').textContent = `${new Date(ev.date).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})} | ${ev.time || ''}`;
+            document.getElementById('detail-sim').textContent = ev.sim;
+            document.getElementById('detail-track').textContent = ev.track || '-';
+            document.getElementById('detail-desc').textContent = ev.desc || 'Keine Notizen.';
+            document.getElementById('detail-members-container').innerHTML = renderMemberBadgesHTML(ev.members);
+            
+            document.getElementById('detail-edit-btn').classList.toggle('hidden', currentRole === 'guest');
+            document.getElementById('detail-delete-btn').classList.toggle('hidden', currentRole === 'guest');
+            document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); selectedEventId = null; }
+
+        async function deleteCurrentEvent() {
+            if (currentRole === 'guest' || !selectedEventId || !supabaseClient) return;
+            const { error } = await supabaseClient.from('events').delete().eq('id', selectedEventId);
+            if (error) showToast('Fehler: ' + error.message, 'warning');
+            else { closeDetailModal(); showToast('Termin gelöscht.'); fetchData(); }
+        }
+
+        function editCurrentEvent() {
+            if (currentRole === 'guest') return;
+            const ev = events.find(e => e.id === selectedEventId); if (!ev) return;
+            closeDetailModal();
+            document.getElementById('event-modal-title').innerHTML = '<i class="fa-solid fa-pen-to-square text-cyan-400"></i> TERMIN BEARBEITEN';
+            document.getElementById('event-id').value = ev.id;
+            document.getElementById('event-title').value = ev.title;
+            document.getElementById('event-type').value = ev.type;
+            document.getElementById('event-sim').value = ev.sim;
+            document.getElementById('event-track').value = ev.track;
+            document.getElementById('event-date').value = ev.date;
+            document.getElementById('event-time').value = ev.time;
+            document.getElementById('event-duration').value = ev.duration;
+            document.getElementById('event-desc').value = ev.desc;
+
+            const eMembers = ev.members || [];
+            document.querySelectorAll('input[name="event_members"]').forEach(cb => cb.checked = eMembers.includes(cb.value));
+            document.getElementById('event-modal').classList.remove('hidden');
+        }
+
+        function openMemberModal() {
+            if (currentRole === 'guest') { showToast('Keine Berechtigung.', 'warning'); return; }
+            document.getElementById('member-modal').classList.remove('hidden');
+            renderMemberList();
+        }
+
+        function closeMemberModal() {
+            document.getElementById('member-modal').classList.add('hidden');
+            populateMemberSelects(); renderCalendar();
+        }
+
+        function renderMemberList() {
+            const container = document.getElementById('member-list-container');
+            if(!container) return;
+            if (members.length === 0) { container.innerHTML = '<p class="text-xs text-gray-500 py-2">Keine Fahrer.</p>'; return; }
+            let html = '';
+            members.forEach(m => {
+                html += `<div class="flex items-center justify-between bg-revoryx-bg px-3 py-2.5 rounded-xl border border-revoryx-cardBorder shadow">
+                    <div class="flex items-center space-x-3"><span class="w-4 h-4 rounded-full shadow-lg" style="background-color: ${m.color}"></span><span class="text-sm font-semibold text-gray-200">${m.name}</span></div>
+                    <button onclick="deleteMember('${m.id}')" class="text-gray-500 hover:text-red-400 transition p-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function addMember(e) {
+            e.preventDefault();
+            if (currentRole === 'guest' || !supabaseClient) return;
+            const memberObj = { id: 'm_' + Date.now(), name: document.getElementById('member-name').value, color: document.getElementById('member-color').value };
+            const { error } = await supabaseClient.from('members').insert(memberObj);
+            if (error) showToast('Fehler: ' + error.message, 'warning');
+            else { document.getElementById('member-form').reset(); showToast('Fahrer gespeichert.'); fetchData(); }
+        }
+
+        async function deleteMember(id) {
+            if (currentRole === 'guest' || !supabaseClient) return;
+            const { error } = await supabaseClient.from('members').delete().eq('id', id);
+            if (error) showToast('Fehler: ' + error.message, 'warning');
+            else { showToast('Fahrer gelöscht.'); fetchData(); }
+        }
     </script>
 </body>
 </html>
