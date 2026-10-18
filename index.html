@@ -188,6 +188,30 @@
             #toast { left: 1rem; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom)); }
             footer button { padding: .6rem .5rem; }
         }
+    
+        /* ===== Stint: anpassbare Start-/Endzeiten ===== */
+        .stint-time input { color: #67e8f9; }
+        .stint-time.end input { color: #cbd5e1; }
+        .stint-field.adj { border-color: #d9b25f; background: rgba(217,178,95,.08); }
+        .stint-field.adj input { color: #f5d78e; }
+        .stint-adj { display: flex; align-items: center; justify-content: flex-end; gap: .45rem; min-height: 1.3rem; margin-top: .3rem; font-family: 'Inter', sans-serif; font-size: .72rem; font-variant-numeric: tabular-nums; }
+        .stint-tag { color: #d9b25f; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; font-size: .6rem; }
+        .stint-delta { font-weight: 600; }
+        .stint-delta.late { color: #f87171; }
+        .stint-delta.early { color: #4ade80; }
+        .stint-reset { background: transparent; border: 1px solid #3d3d52; color: #9aa4b2; border-radius: .45rem; padding: .1rem .5rem; cursor: pointer; font-size: .8rem; line-height: 1.3; }
+        .stint-reset:hover { color: #00f3ff; border-color: #00f3ff; }
+        @media (max-width: 767px) {
+            .stint-adj { justify-content: flex-start; margin-top: .4rem; }
+            .stint-reset { padding: .35rem .8rem; font-size: .9rem; }
+        }
+    
+        /* ===== Termin entfällt ===== */
+        .ev-cancelled { background-image: repeating-linear-gradient(135deg, rgba(239,68,68,.16) 0 8px, rgba(239,68,68,.04) 8px 16px) !important; border-color: rgba(239,68,68,.6) !important; border-left-color: #ef4444 !important; }
+        .ev-cancelled .ev-title { text-decoration: line-through; text-decoration-color: #ef4444; text-decoration-thickness: 2px; color: #fca5a5 !important; }
+        .cancel-badge { display: inline-flex; align-items: center; gap: .3rem; align-self: flex-start; background: #dc2626; color: #fff; font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; padding: .2rem .5rem; border-radius: .4rem; box-shadow: 0 0 12px rgba(239,68,68,.55); white-space: nowrap; }
+        .cancel-reason { font-size: .7rem; color: #fca5a5; font-weight: 600; }
+        .m-dots i.x { background: transparent !important; border: 2px solid #ef4444; }
     </style>
 </head>
 <body class="text-gray-100 min-h-screen flex flex-col selection:bg-cyan-400 selection:text-black relative">
@@ -383,6 +407,7 @@
                 <div class="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-400">
                     <span><span class="inline-block w-2.5 h-2.5 rounded-sm mr-1.5 align-middle" style="background:#d9b25f"></span>Eingabe: hier tippst du (Komma oder Punkt)</span>
                     <span><span class="inline-block w-2.5 h-2.5 rounded-sm mr-1.5 align-middle" style="background:#2f9aa0"></span>Automatisch berechnet</span>
+                    <span><span class="inline-block w-2.5 h-2.5 rounded-sm mr-1.5 align-middle" style="border:1px solid #d9b25f;background:rgba(217,178,95,.2)"></span>Start/Ende manuell angepasst (z. B. Verzögerung): folgende Stints verschieben sich, ↺ setzt zurück</span>
                 </div>
 
                 <div class="overflow-x-auto -mx-2 px-2">
@@ -391,11 +416,11 @@
                             <tr>
                                 <th class="w-16">Stint</th>
                                 <th>Fahrer<span class="stint-sub in">Eingabe</span></th>
-                                <th class="num">Start<span class="stint-sub">automatisch</span></th>
+                                <th class="num">Start<span class="stint-sub">automatisch · anpassbar</span></th>
                                 <th class="num">Tankinhalt<span class="stint-sub in">Eingabe</span></th>
                                 <th class="num">Runden<span class="stint-sub">automatisch</span></th>
                                 <th class="num">Dauer<span class="stint-sub">automatisch</span></th>
-                                <th class="num">Ende<span class="stint-sub">automatisch</span></th>
+                                <th class="num">Ende<span class="stint-sub">automatisch · anpassbar</span></th>
                                 <th class="w-16 text-center act-col">Aktion</th>
                             </tr>
                         </thead>
@@ -530,6 +555,14 @@
                     <textarea id="event-desc" rows="3" placeholder="Fahrzeug, Stints, Setups..." class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition"></textarea>
                 </div>
 
+                <div class="rounded-xl border border-red-500/40 bg-red-950/20 p-3 space-y-2">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" id="event-cancelled" onchange="toggleCancelReasonField()" class="w-5 h-5 accent-red-500">
+                        <span class="text-sm font-orbitron font-bold uppercase text-red-300"><i class="fa-solid fa-ban mr-1"></i> Termin entfällt</span>
+                    </label>
+                    <input type="text" id="event-cancel-reason" placeholder="Grund (optional), z. B. Server-Ausfall" class="hidden w-full bg-revoryx-bg border border-red-500/40 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-red-400 transition">
+                </div>
+
                 <div class="flex items-center justify-end space-x-3 pt-4 border-t border-revoryx-cardBorder">
                     <button type="button" onclick="closeEventModal()" class="px-5 py-2.5 rounded-xl text-xs font-orbitron font-bold uppercase bg-slate-800 hover:bg-slate-700 text-gray-300 transition">Abbrechen</button>
                     <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-orbitron font-black uppercase bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-black shadow-lg neon-glow-cyan transition">Speichern</button>
@@ -569,6 +602,10 @@
     <!-- MODAL: Event Details -->
     <div id="detail-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
         <div class="glass-panel border border-cyan-400/40 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div id="detail-cancel-banner" class="hidden px-6 py-3 bg-red-600 text-white flex items-center gap-3">
+                <i class="fa-solid fa-ban text-2xl"></i>
+                <div class="min-w-0"><div class="font-orbitron font-black uppercase tracking-wider text-sm">Termin entfällt</div><div id="detail-cancel-reason" class="text-xs text-red-100 break-words"></div></div>
+            </div>
             <div id="detail-header" class="px-6 py-4 flex items-center justify-between border-b border-revoryx-cardBorder bg-revoryx-darkBlue">
                 <div class="flex items-center space-x-2">
                     <span id="detail-type-badge" class="px-2.5 py-1 rounded text-xs font-orbitron font-bold uppercase"></span>
@@ -605,11 +642,12 @@
                     <p id="detail-desc" class="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed"></p>
                 </div>
             </div>
-            <div class="bg-slate-900/90 px-6 py-3 border-t border-revoryx-cardBorder flex justify-between items-center">
+            <div class="bg-slate-900/90 px-6 py-3 border-t border-revoryx-cardBorder flex flex-wrap gap-2 justify-between items-center">
                 <button id="detail-delete-btn" onclick="deleteCurrentEvent()" class="hidden text-red-400 hover:text-red-300 text-xs font-orbitron font-bold uppercase flex items-center gap-1 transition">
                     <i class="fa-solid fa-trash"></i> Löschen
                 </button>
                 <div class="space-x-2 ml-auto flex items-center">
+                    <button id="detail-cancel-btn" onclick="toggleCancelCurrentEvent()" class="hidden"></button>
                     <button id="detail-edit-btn" onclick="editCurrentEvent()" class="hidden px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-orbitron font-bold rounded-xl border border-cyan-500/30 transition">Bearbeiten</button>
                     <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-orbitron font-bold rounded-xl transition">Schließen</button>
                 </div>
@@ -850,9 +888,9 @@
         }
 
         function updateStats() {
-            document.getElementById('stat-races').textContent = events.filter(e => e.type === 'Rennen').length;
-            document.getElementById('stat-qualis').textContent = events.filter(e => e.type === 'Qualifying').length;
-            document.getElementById('stat-trainings').textContent = events.filter(e => e.type === 'Training').length;
+            document.getElementById('stat-races').textContent = events.filter(e => e.type === 'Rennen' && !isCancelled(e)).length;
+            document.getElementById('stat-qualis').textContent = events.filter(e => e.type === 'Qualifying' && !isCancelled(e)).length;
+            document.getElementById('stat-trainings').textContent = events.filter(e => e.type === 'Training' && !isCancelled(e)).length;
             document.getElementById('stat-drivers').textContent = members.length;
         }
 
@@ -960,6 +998,12 @@
             });
         }
 
+        function isCancelled(e) { return e && (e.cancelled === true || e.cancelled === 'true'); }
+        function cancelBadgeHTML(e, withReason) {
+            const reason = withReason && e.cancel_reason ? `<span class="cancel-reason">${stintEsc(e.cancel_reason)}</span>` : '';
+            return `<div class="flex items-center gap-2 flex-wrap"><span class="cancel-badge"><i class="fa-solid fa-ban"></i> Entfällt</span>${reason}</div>`;
+        }
+
         function getTypeBadgeHTML(type) {
             let icon = 'fa-flag-checkered'; let bgClass = 'bg-cyan-400/10 text-cyan-400 border-cyan-400/30';
             if (type === 'Qualifying') { icon = 'fa-stopwatch'; bgClass = 'bg-amber-500/10 text-amber-400 border-amber-500/30'; } 
@@ -1040,12 +1084,12 @@
                     const eMembers = e.members || [];
                     const pColor = eMembers.length > 0 && members.find(m => m.id === eMembers[0]) ? members.find(m => m.id === eMembers[0]).color : '#00f3ff';
                     
-                    html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="glass-card hover:bg-slate-800/90 border-l-4 p-1.5 rounded-lg cursor-pointer transition shadow flex flex-col gap-1 shrink-0">
+                    html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="glass-card hover:bg-slate-800/90 border-l-4 p-1.5 rounded-lg cursor-pointer transition shadow flex flex-col gap-1 shrink-0${isCancelled(e) ? ' ev-cancelled' : ''}">
                         <div class="flex items-center justify-between gap-1">
                             ${getTypeBadgeHTML(e.type)}
                             <span class="text-[9px] text-cyan-300 font-bold bg-cyan-950/60 px-1 py-0.2 rounded whitespace-nowrap">${e.time || ''}</span>
                         </div>
-                        <div class="text-[11px] font-bold text-white leading-snug break-words">${e.title}</div>
+                        ${isCancelled(e) ? cancelBadgeHTML(e, false) : ''}<div class="ev-title text-[11px] font-bold text-white leading-snug break-words">${e.title}</div>
                         <div class="pt-0.5 border-t border-slate-800/80">
                             ${renderMemberBadgesHTML(eMembers)}
                         </div>
@@ -1079,12 +1123,12 @@
                 else dayEvents.forEach(e => {
                     const eMembers = e.members || [];
                     const pColor = eMembers.length > 0 && members.find(m => m.id === eMembers[0]) ? members.find(m => m.id === eMembers[0]).color : '#00f3ff';
-                    html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="bg-revoryx-bg/90 hover:bg-slate-800 border-l-[5px] p-2.5 rounded-xl cursor-pointer transition shadow border border-revoryx-cardBorder flex flex-col gap-1.5 shrink-0">
+                    html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="bg-revoryx-bg/90 hover:bg-slate-800 border-l-[5px] p-2.5 rounded-xl cursor-pointer transition shadow border border-revoryx-cardBorder flex flex-col gap-1.5 shrink-0${isCancelled(e) ? ' ev-cancelled' : ''}">
                         <div class="flex items-center justify-between flex-wrap gap-1">
                             ${getTypeBadgeHTML(e.type)}
                             <span class="text-[10px] font-bold text-cyan-300 bg-cyan-950/40 px-1.5 py-0.5 rounded">${e.time || ''}</span>
                         </div>
-                        <h4 class="text-sm md:text-xs font-bold text-white leading-snug break-words">${e.title}</h4>
+                        ${isCancelled(e) ? cancelBadgeHTML(e, true) : ''}<h4 class="ev-title text-sm md:text-xs font-bold text-white leading-snug break-words">${e.title}</h4>
                         <div class="pt-1.5 border-t border-revoryx-cardBorder">${renderMemberBadgesHTML(eMembers)}</div>
                     </div>`;
                 });
@@ -1099,13 +1143,13 @@
             [...evs].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(e => {
                 const eMembers = e.members || [];
                 const pColor = eMembers.length > 0 && members.find(m => m.id === eMembers[0]) ? members.find(m => m.id === eMembers[0]).color : '#00f3ff';
-                html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="p-4 sm:p-5 hover:bg-slate-800/60 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer border-l-[5px]">
+                html += `<div onclick="openDetailModal('${e.id}')" style="border-left-color: ${pColor}" class="p-4 sm:p-5 hover:bg-slate-800/60 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer border-l-[5px]${isCancelled(e) ? ' ev-cancelled' : ''}">
                     <div class="space-y-1.5 flex-grow">
                         <div class="flex items-center space-x-2 flex-wrap gap-y-1">
                             ${getTypeBadgeHTML(e.type)}
                             <span class="text-xs font-orbitron font-bold text-gray-400 bg-revoryx-bg px-2 py-0.5 rounded border border-slate-700">${e.sim}</span>
                         </div>
-                        <h3 class="text-base font-bold text-white break-words">${e.title}</h3>
+                        ${isCancelled(e) ? cancelBadgeHTML(e, true) : ''}<h3 class="ev-title text-base font-bold text-white break-words">${e.title}</h3>
                         <div class="pt-1">${renderMemberBadgesHTML(eMembers)}</div>
                     </div>
                     <div class="text-left md:text-right flex md:flex-col items-center md:items-end justify-between w-full md:w-auto bg-revoryx-bg/80 md:bg-transparent p-2.5 md:p-0 rounded-xl">
@@ -1124,9 +1168,9 @@
             return m ? m.color : '#00f3ff';
         }
         function mobileEventCard(e) {
-            return `<div onclick="openDetailModal('${stintEsc(e.id)}')" style="border-left-color:${stintEsc(eventColor(e))}" class="bg-revoryx-bg/90 active:bg-slate-800 border-l-[5px] border border-revoryx-cardBorder p-4 rounded-xl cursor-pointer flex flex-col gap-2">
+            return `<div onclick="openDetailModal('${stintEsc(e.id)}')" style="border-left-color:${stintEsc(eventColor(e))}" class="bg-revoryx-bg/90 active:bg-slate-800 border-l-[5px] border border-revoryx-cardBorder p-4 rounded-xl cursor-pointer flex flex-col gap-2${isCancelled(e) ? ' ev-cancelled' : ''}">
                 <div class="flex items-center justify-between gap-2 flex-wrap">${getTypeBadgeHTML(e.type)}<span class="text-xs font-bold text-cyan-300 bg-cyan-950/40 px-2 py-1 rounded">${stintEsc(e.time || '')}${e.time ? ' Uhr' : ''}</span></div>
-                <h4 class="text-base font-bold text-white leading-snug break-words">${stintEsc(e.title)}</h4>
+                ${isCancelled(e) ? cancelBadgeHTML(e, true) : ''}<h4 class="ev-title text-base font-bold text-white leading-snug break-words">${stintEsc(e.title)}</h4>
                 ${e.sim ? `<div class="text-xs text-gray-400 font-semibold"><i class="fa-solid fa-gamepad mr-1"></i>${stintEsc(e.sim)}${e.track ? ' · ' + stintEsc(e.track) : ''}</div>` : ''}
                 <div class="pt-2 border-t border-revoryx-cardBorder">${renderMemberBadgesHTML(e.members || [])}</div>
             </div>`;
@@ -1138,7 +1182,7 @@
             for (let d = 1; d <= totalDays; d++) {
                 const ds = pre + String(d).padStart(2, '0');
                 const de = evs.filter(e => e.date === ds);
-                const dots = de.slice(0, 3).map(e => `<i style="background:${stintEsc(eventColor(e))}"></i>`).join('') + (de.length > 3 ? '<b>+</b>' : '');
+                const dots = de.slice(0, 3).map(e => `<i class="${isCancelled(e) ? 'x' : ''}" style="background:${stintEsc(eventColor(e))}"></i>`).join('') + (de.length > 3 ? '<b>+</b>' : '');
                 cells += `<button type="button" class="m-day${ds === todayStr ? ' today' : ''}${ds === mobileSelectedDate ? ' sel' : ''}" onclick="selectMobileDay('${ds}')"><span class="n">${d}</span><span class="m-dots">${dots}</span></button>`;
             }
             const [y, mo, dd] = mobileSelectedDate.split('-').map(Number);
@@ -1172,7 +1216,7 @@
             
             let html = '<option value="">-- Event für Stintplan wählen --</option>';
             raceEvents.forEach(e => {
-                html += `<option value="${e.id}">${e.date} - ${e.title} (${e.sim})</option>`;
+                html += `<option value="${e.id}">${isCancelled(e) ? '❌ ENTFÄLLT · ' : ''}${e.date} - ${e.title} (${e.sim})</option>`;
             });
             select.innerHTML = html;
             select.value = currentVal;
@@ -1274,6 +1318,25 @@
         }
         function stintDur(sec) { sec = Math.floor(sec); return `${Math.floor(sec / 3600)}h ${String(Math.floor((sec % 3600) / 60)).padStart(2, '0')}m`; }
 
+        function parseClockInput(v) { // "14:35", "1435", "14.35", "14" -> Sekunden seit 00:00
+            const t = String(v ?? '').trim().replace(/[.,hH]/g, ':');
+            let m = t.match(/^(\d{1,2}):?(\d{2})(?::\d{2})?$/), h, mi;
+            if (m) { h = +m[1]; mi = +m[2]; }
+            else if ((m = t.match(/^(\d{1,2})$/))) { h = +m[1]; mi = 0; }
+            else return null;
+            return (h > 23 || mi > 59) ? null : h * 3600 + mi * 60;
+        }
+        function clockText(sec) {
+            const d = ((Math.floor(sec) % 86400) + 86400) % 86400;
+            return `${String(Math.floor(d / 3600)).padStart(2, '0')}:${String(Math.floor((d % 3600) / 60)).padStart(2, '0')}`;
+        }
+        // Wählt den Tag so, dass die eingegebene Uhrzeit möglichst nah an der berechneten liegt (Mitternacht-sicher)
+        function adjustTo(computed, str) {
+            const t = parseClockInput(str); if (t === null) return { sec: computed, ov: false };
+            let d = (((t - computed) % 86400) + 86400) % 86400; if (d > 43200) d -= 86400;
+            return { sec: computed + d, ov: true };
+        }
+
         function computeStints() {
             const val = id => document.getElementById(id).value;
             const lapSec = parseLapTime(val('stint-lap-seconds')) || 105;
@@ -1281,32 +1344,73 @@
             const pitRaw = val('stint-pit-duration').trim();
             const pitSec = (pitRaw === '' ? 2.5 : stintNum(pitRaw)) * 60;
             const [h, m] = (val('stint-start-time') || '14:00').split(':').map(Number);
-            let clock = (h || 0) * 3600 + (m || 0) * 60, totalSec = 0, totalLaps = 0;
+            const startClock = (h || 0) * 3600 + (m || 0) * 60;
+            let planned = startClock, actual = startClock, totalSec = 0, totalLaps = 0;
             const stints = currentStintPlan.plan_data.stints || [];
             const rows = stints.map((s, i) => {
                 const laps = Math.floor(stintNum(s.fuel) / fuelLap + 1e-9);
                 s.laps = laps;
-                const dur = laps * lapSec, row = { start: clock, end: clock + dur, laps, dur };
+                const dur = laps * lapSec;
+                // Berechnung (unverändert): Plan ohne manuelle Eingriffe
+                const pStart = planned, pEnd = planned + dur;
+                // Tatsächliche Zeiten: manuelle Anpassungen verschieben alle folgenden Stints
+                const st = adjustTo(actual, s.start_override);
+                let end = st.sec + dur;
+                const en = adjustTo(end, s.end_override);
+                end = en.sec;
                 totalSec += dur; totalLaps += laps;
-                clock += dur + pitSec;
+                planned = pEnd + pitSec; actual = end + pitSec;
                 if (i < stints.length - 1) totalSec += pitSec; // Boxenstopp nur zwischen den Stints
-                return row;
+                return { start: st.sec, end, laps, dur, startOv: st.ov, endOv: en.ov, dStart: st.sec - pStart, dEnd: end - pEnd };
             });
             return { rows, totalSec, totalLaps, lapSec, endClock: rows.length ? rows[rows.length - 1].end : null };
         }
 
-        function updateStintCalc() {
+        function setStintTimeCell(tr, key, sec, isOv, delta, i, editable, force) {
+            const inp = tr.querySelector(`input[data-t="${key}"]`); if (!inp) return;
+            if (force || inp !== document.activeElement) inp.value = clockText(sec);
+            const day = Math.floor(sec / 86400);
+            tr.querySelector(`[data-u="${key}"]`).textContent = day === 0 ? 'Uhr' : (day > 0 ? `+${day} Tag` : `${day} Tag`);
+            inp.closest('label').classList.toggle('adj', isOv);
+            const mins = Math.round(delta / 60);
+            let h = '';
+            if (isOv) h += '<span class="stint-tag">manuell</span>';
+            if (mins !== 0) h += `<span class="stint-delta ${mins > 0 ? 'late' : 'early'}">${mins > 0 ? '+' : ''}${mins} min</span>`;
+            if (isOv && editable) h += `<button type="button" class="stint-reset" onclick="resetStintTime(${i}, '${key}')" title="Zurück zur Berechnung">↺</button>`;
+            tr.querySelector(`[data-a="${key}"]`).innerHTML = h;
+        }
+
+        function setStintTime(i, key, el) {
+            const s = currentStintPlan.plan_data.stints[i];
+            if (!s || currentRole === 'guest') return;
+            const v = el.value.trim();
+            if (v === '') delete s[key + '_override'];
+            else {
+                const t = parseClockInput(v);
+                if (t === null) showToast('Ungültige Uhrzeit – bitte z. B. 14:35 eingeben.', 'warning');
+                else s[key + '_override'] = clockText(t);
+            }
+            updateStintCalc(true);
+        }
+        function resetStintTime(i, key) {
+            const s = currentStintPlan.plan_data.stints[i];
+            if (!s || currentRole === 'guest') return;
+            delete s[key + '_override'];
+            updateStintCalc(true);
+        }
+
+        function updateStintCalc(force) {
             const tbody = document.getElementById('stint-table-body');
             const stints = currentStintPlan.plan_data.stints || [];
             if (!tbody) return;
             if (tbody.querySelectorAll('tr[data-i]').length !== stints.length) { renderStintTable(); return; }
-            const r = computeStints();
+            const r = computeStints(), editable = currentRole !== 'guest';
             r.rows.forEach((x, i) => {
                 const tr = tbody.querySelector(`tr[data-i="${i}"]`);
-                tr.querySelector('[data-c="start"]').innerHTML = stintClock(x.start);
+                setStintTimeCell(tr, 'start', x.start, x.startOv, x.dStart, i, editable, force);
+                setStintTimeCell(tr, 'end', x.end, x.endOv, x.dEnd, i, editable, force);
                 tr.querySelector('[data-c="laps"]').textContent = x.laps;
                 tr.querySelector('[data-c="dur"]').textContent = stintDur(x.dur);
-                tr.querySelector('[data-c="end"]').innerHTML = stintClock(x.end);
             });
             document.getElementById('total-race-duration').textContent = stintDur(r.totalSec);
             document.getElementById('total-race-laps').textContent = r.totalLaps;
@@ -1328,11 +1432,11 @@
                 <tr data-i="${i}">
                     <td><span class="stint-badge">${i + 1}</span></td>
                     <td data-label="Fahrer"><select class="stint-select" ${dis} onchange="updateStintField(${i}, 'driver', this.value)">${opts(s.driver)}</select></td>
-                    <td class="num" data-label="Start"><span data-c="start" class="stint-calc" style="color:#67e8f9"></span></td>
+                    <td class="num" data-label="Start" style="width:10.5rem"><label class="stint-field stint-time"><input type="text" inputmode="numeric" autocomplete="off" data-t="start" ${dis} onfocus="this.select()" onchange="setStintTime(${i}, 'start', this)" onkeydown="if(event.key==='Enter')this.blur()"><span class="unit" data-u="start">Uhr</span></label><div class="stint-adj" data-a="start"></div></td>
                     <td data-label="Tankinhalt" style="width:11rem"><label class="stint-field"><input type="text" inputmode="decimal" autocomplete="off" ${dis} value="${stintEsc(s.fuel)}" onfocus="this.select()" oninput="updateStintField(${i}, 'fuel', this.value); calculateStints();"><span class="unit">Liter</span></label></td>
                     <td class="num" data-label="Runden"><span data-c="laps" class="stint-calc" style="color:#fff"></span> <span style="font-size:.75rem;color:#6b7686">Rd.</span></td>
                     <td class="num" data-label="Dauer"><span data-c="dur" class="stint-calc" style="color:#cbd5e1"></span></td>
-                    <td class="num" data-label="Ende"><span data-c="end" class="stint-calc" style="color:#cbd5e1"></span></td>
+                    <td class="num" data-label="Ende" style="width:10.5rem"><label class="stint-field stint-time end"><input type="text" inputmode="numeric" autocomplete="off" data-t="end" ${dis} onfocus="this.select()" onchange="setStintTime(${i}, 'end', this)" onkeydown="if(event.key==='Enter')this.blur()"><span class="unit" data-u="end">Uhr</span></label><div class="stint-adj" data-a="end"></div></td>
                     <td class="text-center act-col">${editable ? `<button onclick="removeStintRow(${i})" class="text-red-400 hover:text-red-300 p-2" title="Stint löschen"><i class="fa-solid fa-trash-can"></i></button>` : ''}</td>
                 </tr>`).join('')
                 : '<tr><td colspan="8" class="text-center py-8 text-gray-500 font-orbitron">Noch keine Stints vorhanden.</td></tr>';
@@ -1400,6 +1504,7 @@
             document.getElementById('event-modal-title').innerHTML = '<i class="fa-solid fa-calendar-plus text-cyan-400"></i> TERMIN ERSTELLEN';
             document.getElementById('event-form').reset();
             document.getElementById('event-id').value = '';
+            toggleCancelReasonField();
             document.getElementById('event-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('event-modal').classList.remove('hidden');
         }
@@ -1408,6 +1513,10 @@
             if (currentRole === 'guest') return;
             openEventModal();
             document.getElementById('event-date').value = dStr;
+        }
+
+        function toggleCancelReasonField() {
+            document.getElementById('event-cancel-reason').classList.toggle('hidden', !document.getElementById('event-cancelled').checked);
         }
 
         function closeEventModal() { document.getElementById('event-modal').classList.add('hidden'); }
@@ -1432,8 +1541,15 @@
                 desc: document.getElementById('event-desc').value 
             };
 
+            // Felder nur senden, wenn nötig bzw. die Spalten schon existieren (so bleibt Speichern ohne SQL-Update möglich)
+            const cancelled = document.getElementById('event-cancelled').checked;
+            if (cancelled || events.some(x => 'cancelled' in x)) {
+                eventObj.cancelled = cancelled;
+                eventObj.cancel_reason = cancelled ? document.getElementById('event-cancel-reason').value.trim() : '';
+            }
+
             const { error } = await supabaseClient.from('events').upsert(eventObj);
-            if (error) showToast('Fehler: ' + error.message, 'warning');
+            if (error) showToast(/cancel/i.test(error.message) ? "Spalten für 'Entfällt' fehlen in Supabase – bitte das SQL ausführen." : 'Fehler: ' + error.message, 'warning');
             else { closeEventModal(); showToast('Termin gespeichert!'); fetchData(); }
         }
 
@@ -1447,9 +1563,33 @@
             document.getElementById('detail-desc').textContent = ev.desc || 'Keine Notizen.';
             document.getElementById('detail-members-container').innerHTML = renderMemberBadgesHTML(ev.members);
             
+            const canc = isCancelled(ev), staff = currentRole !== 'guest';
+            document.getElementById('detail-cancel-banner').classList.toggle('hidden', !canc);
+            document.getElementById('detail-cancel-reason').textContent = ev.cancel_reason || '';
+            document.getElementById('detail-title').classList.toggle('line-through', canc);
+            const cb = document.getElementById('detail-cancel-btn');
+            cb.innerHTML = canc ? '<i class="fa-solid fa-rotate-left mr-1"></i> Wieder aktivieren' : '<i class="fa-solid fa-ban mr-1"></i> Entfällt';
+            cb.className = 'px-4 py-2 text-xs font-orbitron font-bold rounded-xl border transition ' + (canc ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40' : 'bg-red-950/60 text-red-300 border-red-500/40') + (staff ? '' : ' hidden');
             document.getElementById('detail-edit-btn').classList.toggle('hidden', currentRole === 'guest');
             document.getElementById('detail-delete-btn').classList.toggle('hidden', currentRole === 'guest');
             document.getElementById('detail-modal').classList.remove('hidden');
+        }
+
+        async function toggleCancelCurrentEvent() {
+            if (currentRole === 'guest' || !selectedEventId || !supabaseClient) return;
+            const ev = events.find(x => x.id === selectedEventId); if (!ev) return;
+            let patch;
+            if (isCancelled(ev)) patch = { cancelled: false, cancel_reason: '' };
+            else {
+                const reason = prompt('Termin entfällt – Grund (optional):', '');
+                if (reason === null) return;
+                patch = { cancelled: true, cancel_reason: reason.trim() };
+            }
+            const { error } = await supabaseClient.from('events').update(patch).eq('id', ev.id);
+            if (error) { showToast(/cancel/i.test(error.message) ? "Spalten für 'Entfällt' fehlen in Supabase – bitte das SQL ausführen." : 'Fehler: ' + error.message, 'warning'); return; }
+            showToast(patch.cancelled ? 'Termin als "Entfällt" markiert.' : 'Termin wieder aktiv.');
+            await fetchData();
+            openDetailModal(ev.id);
         }
 
         function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); selectedEventId = null; }
@@ -1475,6 +1615,10 @@
             document.getElementById('event-time').value = ev.time;
             document.getElementById('event-duration').value = ev.duration;
             document.getElementById('event-desc').value = ev.desc;
+
+            document.getElementById('event-cancelled').checked = isCancelled(ev);
+            document.getElementById('event-cancel-reason').value = ev.cancel_reason || '';
+            toggleCancelReasonField();
 
             const eMembers = ev.members || [];
             document.querySelectorAll('input[name="event_members"]').forEach(cb => cb.checked = eMembers.includes(cb.value));
