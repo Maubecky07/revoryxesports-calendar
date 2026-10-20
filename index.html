@@ -346,6 +346,9 @@
                         <option value="Training">🛠️ Training</option>
                         <option value="Besprechung">👥 Besprechung</option>
                     </select>
+                    <button onclick="exportMonthImage()" class="col-span-2 md:col-span-1 flex items-center justify-center gap-2 bg-slate-800/90 hover:bg-slate-700 text-cyan-300 px-3 py-2.5 rounded-xl text-xs font-orbitron font-bold uppercase border border-cyan-500/30 transition shadow" title="Aktuellen Monat als Bild speichern">
+                        <i class="fa-solid fa-image"></i><span>Monat als Bild</span>
+                    </button>
                 </div>
             </div>
 
@@ -565,6 +568,14 @@
                     <textarea id="event-desc" rows="3" placeholder="Fahrzeug, Stints, Setups..." class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-400 transition"></textarea>
                 </div>
 
+                <div class="rounded-xl border border-indigo-400/40 bg-indigo-950/20 p-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" id="event-discord" class="w-5 h-5 accent-indigo-400">
+                        <span class="text-sm font-orbitron font-bold uppercase text-indigo-300"><i class="fa-brands fa-discord mr-1"></i> An Discord senden</span>
+                    </label>
+                    <p id="event-discord-hint" class="hidden text-[11px] text-gray-500 mt-1.5">Kein Webhook hinterlegt. <button type="button" onclick="openDiscordModal()" class="text-indigo-300 underline">Jetzt einrichten</button></p>
+                </div>
+
                 <div class="rounded-xl border border-red-500/40 bg-red-950/20 p-3 space-y-2">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" id="event-cancelled" onchange="toggleCancelReasonField()" class="w-5 h-5 accent-red-500">
@@ -681,7 +692,7 @@
                 </div>
                 <label class="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" id="discord-auto" checked class="w-5 h-5 mt-0.5 accent-cyan-400">
-                    <span class="text-sm text-gray-200">Automatisch posten bei neuen, geänderten und entfallenen Terminen</span>
+                    <span class="text-sm text-gray-200">Beim Erstellen eines Termins „An Discord senden“ standardmäßig vorauswählen</span>
                 </label>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button onclick="discordTest()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-indigo-200 text-xs font-orbitron font-bold rounded-xl border border-indigo-400/30 transition"><i class="fa-solid fa-paper-plane mr-1"></i> Test senden</button>
@@ -1550,6 +1561,7 @@
             document.getElementById('event-form').reset();
             document.getElementById('event-id').value = '';
             toggleCancelReasonField();
+            syncEventDiscordBox(true);
             document.getElementById('event-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('event-modal').classList.remove('hidden');
         }
@@ -1594,9 +1606,10 @@
             }
 
             const prevEv = events.find(x => x.id === eventObj.id);
+            const sendDc = document.getElementById('event-discord').checked;
             const { error } = await supabaseClient.from('events').upsert(eventObj);
             if (error) showToast(/cancel/i.test(error.message) ? "Spalten für 'Entfällt' fehlen in Supabase – bitte das SQL ausführen." : 'Fehler: ' + error.message, 'warning');
-            else { closeEventModal(); showToast('Termin gespeichert!'); fetchData(); dcAutoForSave(prevEv, eventObj); }
+            else { closeEventModal(); showToast('Termin gespeichert!'); fetchData(); if (sendDc) dcAutoForSave(prevEv, eventObj); }
         }
 
         function openDetailModal(id) {
@@ -1635,7 +1648,7 @@
             const { error } = await supabaseClient.from('events').update(patch).eq('id', ev.id);
             if (error) { showToast(/cancel/i.test(error.message) ? "Spalten für 'Entfällt' fehlen in Supabase – bitte das SQL ausführen." : 'Fehler: ' + error.message, 'warning'); return; }
             showToast(patch.cancelled ? 'Termin als "Entfällt" markiert.' : 'Termin wieder aktiv.');
-            dcAuto({ ...ev, ...patch }, patch.cancelled ? 'cancelled' : 'reactivated');
+            if (dcCfg().url && confirm('Auch an Discord senden?')) dcAuto({ ...ev, ...patch }, patch.cancelled ? 'cancelled' : 'reactivated');
             await fetchData();
             openDetailModal(ev.id);
         }
@@ -1667,6 +1680,7 @@
             document.getElementById('event-cancelled').checked = isCancelled(ev);
             document.getElementById('event-cancel-reason').value = ev.cancel_reason || '';
             toggleCancelReasonField();
+            syncEventDiscordBox(false);
 
             const eMembers = ev.members || [];
             document.querySelectorAll('input[name="event_members"]').forEach(cb => cb.checked = eMembers.includes(cb.value));
@@ -1764,13 +1778,98 @@
             return cv;
         }
 
-        async function stintBlob() {
+        // Zeichnet per Funktion ein Bild und liefert es als PNG-Blob (bei file:// ggf. ohne Logo)
+        async function pngBlob(draw) {
             try { await Promise.all([document.fonts.load('800 20px Orbitron'), document.fonts.load('600 20px Inter')]); } catch (e) { /* Schrift-Fallback */ }
             const logo = await new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'Futuristisches REVORYX Esports-Logo.png'; });
-            for (const l of logo ? [logo, null] : [null]) { // bei file:// kann das Logo das Bild "tainten" -> dann ohne Logo
-                try { return await new Promise((ok, no) => drawStintCanvas(l).toBlob(b => b ? ok(b) : no(new Error('Bild konnte nicht erstellt werden')), 'image/png')); }
+            for (const l of logo ? [logo, null] : [null]) {
+                try { return await new Promise((ok, no) => draw(l).toBlob(b => b ? ok(b) : no(new Error('Bild konnte nicht erstellt werden')), 'image/png')); }
                 catch (e) { if (!l) throw e; }
             }
+        }
+        const stintBlob = () => pngBlob(drawStintCanvas);
+
+        // ==========================================
+        // KALENDER (MONAT) ALS BILD
+        // ==========================================
+        function drawMonthCanvas(logo) {
+            const y = currentDate.getFullYear(), mo = currentDate.getMonth(), now = new Date();
+            const pad2 = n => String(n).padStart(2, '0');
+            const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`, pre = `${y}-${pad2(mo + 1)}-`;
+            const evs = getFilteredEvents().filter(e => e.date && e.date.startsWith(pre));
+            const by = {}; evs.forEach(e => (by[e.date] = by[e.date] || []).push(e));
+            Object.values(by).forEach(l => l.sort((a, b) => (a.time || '').localeCompare(b.time || '')));
+            const totalDays = new Date(y, mo + 1, 0).getDate(), fd = new Date(y, mo, 1).getDay(), startPad = fd === 0 ? 6 : fd - 1;
+            const weeks = Math.ceil((startPad + totalDays) / 7), MAXC = 5, chipH = 30, gap = 4;
+            const dayEvs = (w, d) => { const dn = w * 7 + d - startPad + 1; return dn >= 1 && dn <= totalDays ? by[pre + pad2(dn)] || [] : []; };
+            const rowHs = Array.from({ length: weeks }, (_, w) => { const mx = Math.max(0, ...[0, 1, 2, 3, 4, 5, 6].map(d => dayEvs(w, d).length)); return Math.max(118, 54 + Math.min(mx, MAXC) * (chipH + gap) + (mx > MAXC ? 22 : 0)); });
+            const W = 1600, S = 2, pad = 40, colW = (W - 2 * pad) / 7, headH = 170, dowH = 44, footH = 70;
+            const H = headH + dowH + rowHs.reduce((a, b) => a + b, 0) + footH;
+            const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+            const c = cv.getContext('2d'); c.scale(S, S);
+            const sans = px => `600 ${px}px Inter, "Segoe UI", Arial, sans-serif`, orb = px => `800 ${px}px Orbitron, "Segoe UI", Arial, sans-serif`;
+            const rr = (x, y2, w, h, d) => { c.beginPath(); c.moveTo(x + d, y2); c.arcTo(x + w, y2, x + w, y2 + h, d); c.arcTo(x + w, y2 + h, x, y2 + h, d); c.arcTo(x, y2 + h, x, y2, d); c.arcTo(x, y2, x + w, y2, d); c.closePath(); };
+            const fit = (t, mw) => { if (c.measureText(t).width <= mw) return t; while (t.length > 1 && c.measureText(t + '…').width > mw) t = t.slice(0, -1); return t + '…'; };
+
+            c.fillStyle = '#0a0a0c'; c.fillRect(0, 0, W, H);
+            const rg = c.createRadialGradient(W * .85, 0, 0, W * .85, 0, 600); rg.addColorStop(0, 'rgba(0,243,255,.16)'); rg.addColorStop(1, 'rgba(0,243,255,0)'); c.fillStyle = rg; c.fillRect(0, 0, W, H);
+            const bar = c.createLinearGradient(0, 0, W, 0); bar.addColorStop(0, '#00f3ff'); bar.addColorStop(1, '#0066ff'); c.fillStyle = bar; c.fillRect(0, 0, W, 6);
+
+            if (logo) { const w = Math.min(logo.width * 56 / logo.height, 300); c.drawImage(logo, pad + 8, 26, w, w * logo.height / logo.width); }
+            else { c.fillStyle = '#00f3ff'; c.font = orb(22); c.textAlign = 'left'; c.fillText('REVORYX ESPORTS', pad + 8, 62); }
+            c.textAlign = 'right'; c.fillStyle = '#00f3ff'; c.font = orb(26); c.fillText('TEAMKALENDER', W - pad - 8, 58);
+            const nCanc = evs.filter(isCancelled).length;
+            c.fillStyle = '#9aa4b2'; c.font = sans(20); c.fillText(`${evs.length - nCanc} Termine` + (nCanc ? ` · ${nCanc} entfallen` : ''), W - pad - 8, 130);
+            c.textAlign = 'left'; c.fillStyle = '#fff'; c.font = orb(46);
+            c.fillText(new Date(y, mo, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }).toUpperCase(), pad + 8, 132);
+
+            c.textAlign = 'center'; c.font = orb(15); c.fillStyle = '#00f3ff';
+            ['MO', 'DI', 'MI', 'DO', 'FR', 'SA', 'SO'].forEach((n, i) => c.fillText(n, pad + i * colW + colW / 2, headH + 30));
+            c.textAlign = 'left';
+
+            let yy = headH + dowH;
+            for (let w = 0; w < weeks; w++) {
+                const rh = rowHs[w];
+                for (let d = 0; d < 7; d++) {
+                    const dn = w * 7 + d - startPad + 1, valid = dn >= 1 && dn <= totalDays, x = pad + d * colW;
+                    c.fillStyle = valid ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.012)'; rr(x + 3, yy + 3, colW - 6, rh - 6, 12); c.fill();
+                    if (!valid) continue;
+                    const ds = pre + pad2(dn), isToday = ds === todayStr, list = dayEvs(w, d);
+                    c.strokeStyle = isToday ? '#00f3ff' : '#1f1f29'; c.lineWidth = isToday ? 2 : 1; c.stroke();
+                    if (isToday) { c.fillStyle = '#00f3ff'; rr(x + 12, yy + 10, 36, 30, 8); c.fill(); }
+                    c.fillStyle = isToday ? '#000' : '#9aa4b2'; c.font = orb(16); c.textAlign = 'center'; c.fillText(String(dn), x + 30, yy + 32); c.textAlign = 'left';
+                    list.slice(0, MAXC).forEach((e, i) => {
+                        const cy = yy + 50 + i * (chipH + gap), canc = isCancelled(e), cx = x + 10, cw = colW - 20;
+                        c.fillStyle = canc ? 'rgba(239,68,68,.24)' : 'rgba(0,243,255,.08)'; rr(cx, cy, cw, chipH, 7); c.fill();
+                        c.strokeStyle = canc ? 'rgba(239,68,68,.75)' : 'rgba(255,255,255,.08)'; c.lineWidth = 1; c.stroke();
+                        c.fillStyle = canc ? '#ef4444' : eventColor(e); c.fillRect(cx, cy + 4, 5, chipH - 8);
+                        c.font = sans(14); const t = fit(`${e.time || ''} ${e.title}`.trim(), cw - 20);
+                        c.fillStyle = canc ? '#fca5a5' : '#fff'; c.fillText(t, cx + 12, cy + 20);
+                        if (canc) { c.fillStyle = '#ef4444'; c.fillRect(cx + 12, cy + chipH / 2 + 1, c.measureText(t).width, 2); }
+                    });
+                    if (list.length > MAXC) { c.fillStyle = '#6b7686'; c.font = sans(13); c.fillText(`+${list.length - MAXC} weitere`, x + 14, yy + 50 + MAXC * (chipH + gap) + 14); }
+                }
+                yy += rh;
+            }
+            c.font = sans(14); c.fillStyle = '#6b7686';
+            c.fillText(`Erstellt am ${now.toLocaleDateString('de-DE')}, ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr  ·  REVORYX ESPORTS`, pad + 8, H - 28);
+            c.textAlign = 'right'; c.fillStyle = '#fca5a5'; c.fillText('Rot & durchgestrichen = Termin entfällt', W - pad - 8, H - 28); c.textAlign = 'left';
+            return cv;
+        }
+
+        async function exportMonthImage() {
+            try {
+                const blob = await pngBlob(drawMonthCanvas), a = document.createElement('a');
+                a.href = URL.createObjectURL(blob); a.download = `Kalender_${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}.png`;
+                document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+                showToast('Monatskalender als Bild gespeichert.');
+            } catch (err) { showToast('Bild-Export fehlgeschlagen: ' + err.message, 'warning'); }
+        }
+
+        function syncEventDiscordBox(isNew) {
+            const cb = document.getElementById('event-discord'), cfg = dcCfg(), has = !!cfg.url;
+            cb.disabled = !has; cb.checked = has && isNew && cfg.auto !== false;
+            document.getElementById('event-discord-hint').classList.toggle('hidden', has);
         }
 
         async function exportStintImage() {
@@ -1826,7 +1925,7 @@
         }
 
         function dcAuto(ev, kind) {
-            const cfg = dcCfg(); if (!cfg.url || cfg.auto === false) return;
+            if (!dcCfg().url) return;
             dcSend({ embeds: [dcEventEmbed(ev, kind)] }).then(() => showToast('Discord: Nachricht gesendet.')).catch(err => showToast('Discord: ' + err.message, 'warning'));
         }
         function dcAutoForSave(prev, ev) {
