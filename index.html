@@ -152,8 +152,8 @@
             .stint-select { font-size: 1.05rem !important; }
             .bg-logo-depth { display: none; }
             .bg-logo-breathe { animation-duration: 14s; }
-            #login-modal, #event-modal, #member-modal, #detail-modal { overflow-y: auto; align-items: flex-start !important; }
-            #login-modal > div, #event-modal > div, #member-modal > div, #detail-modal > div { margin-top: auto; margin-bottom: auto; }
+            #login-modal, #event-modal, #member-modal, #detail-modal, #discord-modal { overflow-y: auto; align-items: flex-start !important; }
+            #login-modal > div, #event-modal > div, #member-modal > div, #detail-modal > div, #discord-modal > div { margin-top: auto; margin-bottom: auto; }
             #view-month-btn, #view-week-btn, #view-agenda-btn { flex: 1; padding-top: .7rem; padding-bottom: .7rem; }
             #m-tab-calendar-btn, #m-tab-stint-btn { padding-top: .75rem; padding-bottom: .75rem; }
             #stint-actions-bar button { width: 100%; padding-top: .9rem; padding-bottom: .9rem; }
@@ -267,6 +267,10 @@
                     </button>
                 </div>
 
+                <button id="nav-discord-btn" onclick="openDiscordModal()" class="hidden flex items-center space-x-2 glass-card text-indigo-300 px-3 sm:px-4 py-2.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider border border-indigo-400/40 transition shadow-lg" title="Discord-Webhook">
+                    <i class="fa-brands fa-discord text-indigo-400 text-sm"></i>
+                    <span class="hidden lg:inline">Discord</span>
+                </button>
                 <button id="nav-roster-btn" onclick="openMemberModal()" class="hidden items-center space-x-2 glass-card text-cyan-300 px-4 py-2.5 rounded-lg text-xs font-orbitron font-bold uppercase tracking-wider border border-cyan-500/30 transition shadow-lg">
                     <i class="fa-solid fa-users text-cyan-400"></i>
                     <span class="hidden md:inline">Fahrer</span>
@@ -430,9 +434,15 @@
                     </table>
                 </div>
 
-                <div id="stint-actions-bar" class="hidden flex justify-between items-center pt-1">
+                <div id="stint-actions-bar" class="hidden flex flex-wrap items-center gap-3 pt-1">
                     <button onclick="addStintRow()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-orbitron font-bold border border-cyan-500/30 transition">
                         <i class="fa-solid fa-plus mr-1"></i> Stint hinzufügen
+                    </button>
+                    <button onclick="exportStintImage()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-xl text-xs font-orbitron font-bold border border-cyan-500/30 transition">
+                        <i class="fa-solid fa-image mr-1"></i> Als Bild exportieren
+                    </button>
+                    <button id="stint-discord-btn" onclick="sendStintToDiscord()" class="hidden px-5 py-3 bg-indigo-950/70 hover:bg-indigo-900/80 text-indigo-200 rounded-xl text-xs font-orbitron font-bold border border-indigo-400/40 transition">
+                        <i class="fa-brands fa-discord mr-1"></i> An Discord senden
                     </button>
                 </div>
             </div>
@@ -647,9 +657,43 @@
                     <i class="fa-solid fa-trash"></i> Löschen
                 </button>
                 <div class="space-x-2 ml-auto flex items-center">
+                    <button id="detail-discord-btn" onclick="discordSendCurrent()" class="hidden px-3 py-2 bg-indigo-950/70 hover:bg-indigo-900/80 text-indigo-200 text-xs font-orbitron font-bold rounded-xl border border-indigo-400/40 transition" title="An Discord senden"><i class="fa-brands fa-discord"></i></button>
                     <button id="detail-cancel-btn" onclick="toggleCancelCurrentEvent()" class="hidden"></button>
                     <button id="detail-edit-btn" onclick="editCurrentEvent()" class="hidden px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-orbitron font-bold rounded-xl border border-cyan-500/30 transition">Bearbeiten</button>
                     <button onclick="closeDetailModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-orbitron font-bold rounded-xl transition">Schließen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Discord Webhook -->
+    <div id="discord-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel border border-indigo-400/40 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 flex items-center justify-between border-b border-revoryx-cardBorder bg-revoryx-darkBlue">
+                <h3 class="font-orbitron font-bold text-lg text-white flex items-center gap-2"><i class="fa-brands fa-discord text-indigo-400"></i> DISCORD-WEBHOOK</h3>
+                <button onclick="closeDiscordModal()" class="text-gray-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-orbitron font-bold uppercase text-cyan-400 mb-1">Webhook-URL</label>
+                    <input type="password" id="discord-url" autocomplete="off" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-revoryx-bg border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-indigo-400 transition">
+                    <p class="text-[11px] text-gray-500 mt-1.5 leading-relaxed">In Discord: Kanal-Einstellungen → Integrationen → Webhooks → URL kopieren. Die URL wird nur in diesem Browser gespeichert und nicht mit anderen geteilt.</p>
+                </div>
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="discord-auto" checked class="w-5 h-5 mt-0.5 accent-cyan-400">
+                    <span class="text-sm text-gray-200">Automatisch posten bei neuen, geänderten und entfallenen Terminen</span>
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onclick="discordTest()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-indigo-200 text-xs font-orbitron font-bold rounded-xl border border-indigo-400/30 transition"><i class="fa-solid fa-paper-plane mr-1"></i> Test senden</button>
+                    <button onclick="discordPostWeek()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-indigo-200 text-xs font-orbitron font-bold rounded-xl border border-indigo-400/30 transition"><i class="fa-solid fa-calendar-week mr-1"></i> Nächste 7 Tage posten</button>
+                </div>
+                <div id="discord-status" class="text-xs text-gray-400 min-h-[1rem]"></div>
+            </div>
+            <div class="px-6 py-4 border-t border-revoryx-cardBorder flex flex-wrap gap-2 items-center justify-between">
+                <button onclick="discordRemove()" class="text-red-400 hover:text-red-300 text-xs font-orbitron font-bold uppercase transition"><i class="fa-solid fa-trash mr-1"></i> Entfernen</button>
+                <div class="flex gap-2">
+                    <button onclick="closeDiscordModal()" class="px-5 py-2.5 rounded-xl text-xs font-orbitron font-bold uppercase bg-slate-800 hover:bg-slate-700 text-gray-300 transition">Schließen</button>
+                    <button onclick="discordSave(false)" class="px-6 py-2.5 rounded-xl text-xs font-orbitron font-black uppercase bg-gradient-to-r from-cyan-400 to-blue-600 text-black shadow-lg transition">Speichern</button>
                 </div>
             </div>
         </div>
@@ -831,6 +875,7 @@
             const rosterBtn = document.getElementById('nav-roster-btn');
             const eventBtn = document.getElementById('nav-event-btn');
             const stintSaveBtn = document.getElementById('stint-save-btn');
+            ['nav-discord-btn', 'stint-discord-btn'].forEach(id => { const b = document.getElementById(id); if (b) b.classList.toggle('hidden', isGuest); });
             
             if (!isGuest) {
                 rosterBtn.classList.remove('hidden'); rosterBtn.classList.add('flex');
@@ -1548,9 +1593,10 @@
                 eventObj.cancel_reason = cancelled ? document.getElementById('event-cancel-reason').value.trim() : '';
             }
 
+            const prevEv = events.find(x => x.id === eventObj.id);
             const { error } = await supabaseClient.from('events').upsert(eventObj);
             if (error) showToast(/cancel/i.test(error.message) ? "Spalten für 'Entfällt' fehlen in Supabase – bitte das SQL ausführen." : 'Fehler: ' + error.message, 'warning');
-            else { closeEventModal(); showToast('Termin gespeichert!'); fetchData(); }
+            else { closeEventModal(); showToast('Termin gespeichert!'); fetchData(); dcAutoForSave(prevEv, eventObj); }
         }
 
         function openDetailModal(id) {
@@ -1570,6 +1616,7 @@
             const cb = document.getElementById('detail-cancel-btn');
             cb.innerHTML = canc ? '<i class="fa-solid fa-rotate-left mr-1"></i> Wieder aktivieren' : '<i class="fa-solid fa-ban mr-1"></i> Entfällt';
             cb.className = 'px-4 py-2 text-xs font-orbitron font-bold rounded-xl border transition ' + (canc ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40' : 'bg-red-950/60 text-red-300 border-red-500/40') + (staff ? '' : ' hidden');
+            document.getElementById('detail-discord-btn').classList.toggle('hidden', !staff);
             document.getElementById('detail-edit-btn').classList.toggle('hidden', currentRole === 'guest');
             document.getElementById('detail-delete-btn').classList.toggle('hidden', currentRole === 'guest');
             document.getElementById('detail-modal').classList.remove('hidden');
@@ -1588,6 +1635,7 @@
             const { error } = await supabaseClient.from('events').update(patch).eq('id', ev.id);
             if (error) { showToast(/cancel/i.test(error.message) ? "Spalten für 'Entfällt' fehlen in Supabase – bitte das SQL ausführen." : 'Fehler: ' + error.message, 'warning'); return; }
             showToast(patch.cancelled ? 'Termin als "Entfällt" markiert.' : 'Termin wieder aktiv.');
+            dcAuto({ ...ev, ...patch }, patch.cancelled ? 'cancelled' : 'reactivated');
             await fetchData();
             openDetailModal(ev.id);
         }
@@ -1623,6 +1671,230 @@
             const eMembers = ev.members || [];
             document.querySelectorAll('input[name="event_members"]').forEach(cb => cb.checked = eMembers.includes(cb.value));
             document.getElementById('event-modal').classList.remove('hidden');
+        }
+
+        // ==========================================
+        // STINTPLAN ALS BILD (Canvas, ohne Zusatz-Bibliothek)
+        // ==========================================
+        function stintClockPlain(sec) { const day = Math.floor(sec / 86400); return clockText(sec) + (day > 0 ? ` +${day}` : ''); }
+        function stintFileName() {
+            const ev = events.find(e => e.id === document.getElementById('stint-event-select').value) || {};
+            const slug = String(ev.title || 'Event').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
+            return `Stintplan_${slug || 'Event'}_${ev.date || ''}.png`;
+        }
+
+        function drawStintCanvas(logo) {
+            const ev = events.find(e => e.id === document.getElementById('stint-event-select').value) || {};
+            const r = computeStints(), canc = isCancelled(ev);
+            const W = 1200, S = 2, rowH = 62, headH = 250, thH = 56, kpiH = 120, footH = 70, n = Math.max(1, r.rows.length);
+            const H = headH + thH + n * rowH + kpiH + footH;
+            const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+            const c = cv.getContext('2d'); c.scale(S, S);
+            const sans = px => `600 ${px}px Inter, "Segoe UI", Arial, sans-serif`, orb = px => `800 ${px}px Orbitron, "Segoe UI", Arial, sans-serif`;
+            const rr = (x, y, w, h, d) => { c.beginPath(); c.moveTo(x + d, y); c.arcTo(x + w, y, x + w, y + h, d); c.arcTo(x + w, y + h, x, y + h, d); c.arcTo(x, y + h, x, y, d); c.arcTo(x, y, x + w, y, d); c.closePath(); };
+
+            c.fillStyle = '#0a0a0c'; c.fillRect(0, 0, W, H);
+            const rg = c.createRadialGradient(W * .85, 0, 0, W * .85, 0, 520); rg.addColorStop(0, 'rgba(0,243,255,.16)'); rg.addColorStop(1, 'rgba(0,243,255,0)'); c.fillStyle = rg; c.fillRect(0, 0, W, H);
+            const bar = c.createLinearGradient(0, 0, W, 0); bar.addColorStop(0, '#00f3ff'); bar.addColorStop(1, '#0066ff'); c.fillStyle = bar; c.fillRect(0, 0, W, 6);
+
+            // Kopf
+            if (logo) { const w = Math.min(logo.width * 60 / logo.height, 280); c.drawImage(logo, 48, 28, w, w * logo.height / logo.width); }
+            else { c.fillStyle = '#00f3ff'; c.font = orb(22); c.textAlign = 'left'; c.fillText('REVORYX ESPORTS', 48, 66); }
+            c.textAlign = 'right'; c.fillStyle = '#00f3ff'; c.font = orb(28); c.fillText('STINTPLAN', W - 48, 62);
+            c.textAlign = 'left';
+            const title = ev.title || 'Stintplan'; let tp = 36; c.font = orb(tp);
+            while (c.measureText(title).width > W - 96 - (canc ? 230 : 0) && tp > 18) { tp -= 2; c.font = orb(tp); }
+            c.fillStyle = canc ? '#fca5a5' : '#fff'; c.fillText(title, 48, 138);
+            if (canc) {
+                const tw = c.measureText(title).width; c.fillStyle = '#ef4444'; c.fillRect(48, 138 - tp * .35, tw, 3);
+                c.fillStyle = '#dc2626'; rr(W - 48 - 200, 104, 200, 44, 10); c.fill(); c.fillStyle = '#fff'; c.font = orb(18); c.textAlign = 'center'; c.fillText('ENTFÄLLT', W - 48 - 100, 133); c.textAlign = 'left';
+            }
+            const dateTxt = ev.date ? dcDate(ev.date).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) : '';
+            c.fillStyle = '#9aa4b2'; c.font = sans(20); c.fillText([dateTxt, ev.time && ev.time + ' Uhr', ev.sim, ev.track].filter(Boolean).join('   ·   '), 48, 176);
+
+            const val = id => document.getElementById(id).value;
+            const chips = [['Rennstart', (val('stint-start-time') || '--:--') + ' Uhr'], ['Rundenzeit', fmtLapTime(r.lapSec)], ['Sprit pro Runde', (val('stint-fuel-lap') || '-') + ' L'], ['Boxenstopp', (val('stint-pit-duration') || '-') + ' Min']];
+            const cw = (W - 96 - 42) / 4;
+            chips.forEach((ch, i) => {
+                const x = 48 + i * (cw + 14);
+                c.fillStyle = '#121217'; rr(x, 196, cw, 40, 10); c.fill(); c.strokeStyle = '#1f1f29'; c.lineWidth = 1; c.stroke();
+                c.fillStyle = '#6b7686'; c.font = sans(13); c.fillText(ch[0].toUpperCase(), x + 14, 221);
+                c.fillStyle = '#fff'; c.font = sans(18); c.textAlign = 'right'; c.fillText(ch[1], x + cw - 14, 222); c.textAlign = 'left';
+            });
+
+            // Tabelle
+            const ty = headH, cols = { fahrer: 150, start: 680, tank: 820, laps: 930, dur: 1040, end: 1152 };
+            c.font = orb(13); c.fillStyle = '#00f3ff'; c.fillText('STINT', 56, ty + 34); c.fillText('FAHRER', cols.fahrer, ty + 34);
+            c.textAlign = 'right'; [['START', 'start'], ['TANK', 'tank'], ['RUNDEN', 'laps'], ['DAUER', 'dur'], ['ENDE', 'end']].forEach(h => c.fillText(h[0], cols[h[1]], ty + 34)); c.textAlign = 'left';
+            let anyAdj = false;
+            const stints = currentStintPlan.plan_data.stints || [];
+            if (!r.rows.length) { c.fillStyle = '#6b7686'; c.font = sans(20); c.fillText('Keine Stints vorhanden.', 56, ty + thH + 38); }
+            r.rows.forEach((x, i) => {
+                const y = ty + thH + i * rowH, s = stints[i] || {};
+                c.fillStyle = i % 2 ? 'rgba(255,255,255,.015)' : 'rgba(255,255,255,.045)'; rr(40, y, W - 80, rowH - 6, 12); c.fill();
+                c.fillStyle = 'rgba(0,243,255,.12)'; rr(52, y + 8, 40, 40, 10); c.fill(); c.strokeStyle = 'rgba(0,243,255,.4)'; c.stroke();
+                c.fillStyle = '#00f3ff'; c.font = orb(18); c.textAlign = 'center'; c.fillText(String(i + 1), 72, y + 35); c.textAlign = 'left';
+                const m = members.find(mm => mm.id === s.driver);
+                if (m) { c.fillStyle = m.color || '#00f3ff'; c.beginPath(); c.arc(cols.fahrer + 8, y + 28, 8, 0, 6.283); c.fill(); }
+                c.fillStyle = m ? '#fff' : '#6b7686'; c.font = sans(22); c.fillText(m ? m.name : '–', cols.fahrer + 26, y + 36);
+                c.textAlign = 'right'; c.font = sans(24);
+                const put = (txt, key, col) => { c.fillStyle = col; c.fillText(txt, cols[key], y + 36); };
+                put(stintClockPlain(x.start) + (x.startOv ? '*' : ''), 'start', x.startOv ? '#f5d78e' : '#67e8f9');
+                put(String(stintNum(s.fuel)).replace('.', ',') + ' L', 'tank', '#fff');
+                put(String(x.laps), 'laps', '#fff');
+                put(stintDur(x.dur), 'dur', '#cbd5e1');
+                put(stintClockPlain(x.end) + (x.endOv ? '*' : ''), 'end', x.endOv ? '#f5d78e' : '#cbd5e1');
+                c.textAlign = 'left'; if (x.startOv || x.endOv) anyAdj = true;
+            });
+
+            // Kennzahlen
+            const ky = ty + thH + n * rowH + 20, kw = (W - 96 - 48) / 4;
+            [['Gesamtdauer', stintDur(r.totalSec)], ['Gesamtrunden', String(r.totalLaps)], ['Stints', String(r.rows.length)], ['Rennende', r.endClock === null ? '--:--' : stintClockPlain(r.endClock)]].forEach((k, i) => {
+                const x = 48 + i * (kw + 16);
+                c.fillStyle = '#121217'; rr(x, ky, kw, 84, 14); c.fill(); c.strokeStyle = '#1f1f29'; c.stroke();
+                c.fillStyle = '#6b7686'; c.font = orb(12); c.fillText(k[0].toUpperCase(), x + 18, ky + 30);
+                c.fillStyle = '#00f3ff'; c.font = sans(34); c.fillText(k[1], x + 18, ky + 67);
+            });
+
+            // Fuß
+            const now = new Date();
+            c.fillStyle = '#6b7686'; c.font = sans(14);
+            c.fillText(`Erstellt am ${now.toLocaleDateString('de-DE')}, ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr  ·  REVORYX ESPORTS`, 48, H - 30);
+            if (anyAdj) { c.fillStyle = '#f5d78e'; c.textAlign = 'right'; c.fillText('* Zeit manuell angepasst', W - 48, H - 30); c.textAlign = 'left'; }
+            return cv;
+        }
+
+        async function stintBlob() {
+            try { await Promise.all([document.fonts.load('800 20px Orbitron'), document.fonts.load('600 20px Inter')]); } catch (e) { /* Schrift-Fallback */ }
+            const logo = await new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = 'Futuristisches REVORYX Esports-Logo.png'; });
+            for (const l of logo ? [logo, null] : [null]) { // bei file:// kann das Logo das Bild "tainten" -> dann ohne Logo
+                try { return await new Promise((ok, no) => drawStintCanvas(l).toBlob(b => b ? ok(b) : no(new Error('Bild konnte nicht erstellt werden')), 'image/png')); }
+                catch (e) { if (!l) throw e; }
+            }
+        }
+
+        async function exportStintImage() {
+            if (!document.getElementById('stint-event-select').value) { showToast('Bitte zuerst ein Event wählen.', 'warning'); return; }
+            try {
+                const blob = await stintBlob(), a = document.createElement('a');
+                a.href = URL.createObjectURL(blob); a.download = stintFileName(); document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+                showToast('Stintplan als Bild gespeichert.');
+            } catch (err) { showToast('Bild-Export fehlgeschlagen: ' + err.message, 'warning'); }
+        }
+
+        // ==========================================
+        // DISCORD-WEBHOOK
+        // ==========================================
+        const DC_KEY = 'revoryx_discord_cfg';
+        function dcCfg() { try { return JSON.parse(localStorage.getItem(DC_KEY) || '{}'); } catch (e) { return {}; } }
+        function dcDate(str) { const [y, m, d] = String(str).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); }
+        function dcValidUrl(u) { return /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(String(u).trim()); }
+
+        async function dcSend(payload, file) {
+            const cfg = dcCfg(); if (!cfg.url) throw new Error('Kein Webhook hinterlegt');
+            payload = { username: 'REVORYX Kalender', allowed_mentions: { parse: [] }, ...payload }; // keine @everyone/@Rollen-Pings
+            let res;
+            if (file) {
+                const fd = new FormData(); payload.attachments = [{ id: 0, filename: file.name }];
+                fd.append('payload_json', JSON.stringify(payload)); fd.append('files[0]', file, file.name);
+                res = await fetch(cfg.url, { method: 'POST', body: fd });
+            } else {
+                res = await fetch(cfg.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            }
+            if (!res.ok) throw new Error(res.status === 404 ? 'Webhook existiert nicht mehr (404)' : 'Discord antwortet mit Status ' + res.status);
+        }
+
+        function dcEventEmbed(ev, kind) {
+            const canc = isCancelled(ev);
+            const names = (ev.members || []).map(id => (members.find(m => m.id === id) || {}).name).filter(Boolean).join(', ') || '–';
+            const head = { new: '🆕 Neuer Termin', changed: '✏️ Termin geändert', cancelled: '❌ TERMIN ENTFÄLLT', reactivated: '✅ Termin findet wieder statt', info: '📅 Termin' }[kind] || '📅 Termin';
+            const fields = [
+                { name: '🗓️ Datum', value: dcDate(ev.date).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }), inline: true },
+                { name: '🕗 Uhrzeit', value: (ev.time ? ev.time + ' Uhr' : '–') + (ev.duration ? ` (${ev.duration})` : ''), inline: true },
+                { name: '🏁 Typ', value: ev.type || '–', inline: true },
+                { name: '🎮 Simulation', value: ev.sim || '–', inline: true },
+                { name: '🛣️ Strecke', value: ev.track || '–', inline: true },
+                { name: '👥 Fahrer', value: names.slice(0, 1000), inline: false }
+            ];
+            if (ev.desc) fields.push({ name: '📝 Notizen', value: String(ev.desc).slice(0, 1000), inline: false });
+            return {
+                title: head,
+                description: (canc ? `**~~${ev.title}~~**\n🚫 **ENTFÄLLT**${ev.cancel_reason ? ' – ' + ev.cancel_reason : ''}` : `**${ev.title}**`).slice(0, 2000),
+                color: canc ? 0xdc2626 : 0x00f3ff, fields, footer: { text: 'REVORYX ESPORTS' }
+            };
+        }
+
+        function dcAuto(ev, kind) {
+            const cfg = dcCfg(); if (!cfg.url || cfg.auto === false) return;
+            dcSend({ embeds: [dcEventEmbed(ev, kind)] }).then(() => showToast('Discord: Nachricht gesendet.')).catch(err => showToast('Discord: ' + err.message, 'warning'));
+        }
+        function dcAutoForSave(prev, ev) {
+            const now = isCancelled(ev), was = isCancelled(prev);
+            dcAuto(ev, !prev ? (now ? 'cancelled' : 'new') : (now && !was) ? 'cancelled' : (!now && was) ? 'reactivated' : 'changed');
+        }
+
+        function discordSendCurrent() {
+            if (currentRole === 'guest') return;
+            const ev = events.find(e => e.id === selectedEventId); if (!ev) return;
+            if (!dcCfg().url) { openDiscordModal(); return; }
+            dcSend({ embeds: [dcEventEmbed(ev, 'info')] }).then(() => showToast('An Discord gesendet.')).catch(err => showToast('Discord: ' + err.message, 'warning'));
+        }
+
+        async function sendStintToDiscord() {
+            if (currentRole === 'guest') return;
+            if (!dcCfg().url) { openDiscordModal(); return; }
+            const ev = events.find(e => e.id === document.getElementById('stint-event-select').value);
+            if (!ev) { showToast('Bitte zuerst ein Event wählen.', 'warning'); return; }
+            try {
+                showToast('Stintplan wird gesendet …');
+                const name = stintFileName(), file = new File([await stintBlob()], name, { type: 'image/png' });
+                await dcSend({ embeds: [{ title: '🏁 Stintplan: ' + ev.title, description: `${dcDate(ev.date).toLocaleDateString('de-DE')}${ev.time ? ' · ' + ev.time + ' Uhr' : ''}${ev.sim ? ' · ' + ev.sim : ''}`, color: 0x00f3ff, image: { url: 'attachment://' + name }, footer: { text: 'REVORYX ESPORTS' } }] }, file);
+                showToast('Stintplan an Discord gesendet.');
+            } catch (err) { showToast('Discord: ' + err.message, 'warning'); }
+        }
+
+        function openDiscordModal() {
+            if (currentRole === 'guest') return;
+            const cfg = dcCfg();
+            document.getElementById('discord-url').value = cfg.url || '';
+            document.getElementById('discord-auto').checked = cfg.auto !== false;
+            document.getElementById('discord-status').textContent = cfg.url ? 'Webhook ist hinterlegt.' : 'Noch kein Webhook hinterlegt.';
+            document.getElementById('discord-modal').classList.remove('hidden');
+        }
+        function closeDiscordModal() { document.getElementById('discord-modal').classList.add('hidden'); }
+        function discordSave(silent) {
+            const url = document.getElementById('discord-url').value.trim(), st = document.getElementById('discord-status');
+            if (!dcValidUrl(url)) { st.textContent = 'Das ist keine gültige Discord-Webhook-URL.'; st.style.color = '#f87171'; return false; }
+            try { localStorage.setItem(DC_KEY, JSON.stringify({ url, auto: document.getElementById('discord-auto').checked })); }
+            catch (e) { st.textContent = 'Speichern im Browser nicht möglich.'; st.style.color = '#f87171'; return false; }
+            st.textContent = 'Gespeichert.'; st.style.color = '#4ade80';
+            if (!silent) { showToast('Discord-Einstellungen gespeichert.'); closeDiscordModal(); }
+            return true;
+        }
+        function discordRemove() {
+            try { localStorage.removeItem(DC_KEY); } catch (e) { /* ignorieren */ }
+            document.getElementById('discord-url').value = ''; document.getElementById('discord-status').textContent = 'Webhook entfernt.'; showToast('Discord-Webhook entfernt.');
+        }
+        async function discordTest() {
+            if (!discordSave(true)) return;
+            const st = document.getElementById('discord-status');
+            try { await dcSend({ embeds: [{ title: '✅ Verbindung steht', description: 'Der REVORYX-Kalender ist mit diesem Kanal verbunden.', color: 0x00f3ff }] }); st.textContent = 'Test gesendet.'; st.style.color = '#4ade80'; }
+            catch (err) { st.textContent = 'Fehler: ' + err.message; st.style.color = '#f87171'; }
+        }
+        async function discordPostWeek() {
+            if (!discordSave(true)) return;
+            const st = document.getElementById('discord-status');
+            const t0 = new Date(); t0.setHours(0, 0, 0, 0); const t1 = new Date(t0); t1.setDate(t1.getDate() + 7);
+            const list = events.filter(e => { const d = dcDate(e.date); return d >= t0 && d < t1; }).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+            const lines = list.map(e => {
+                const d = dcDate(e.date).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }), t = e.time || '--:--';
+                return isCancelled(e) ? `~~**${d}** · ${t} · ${e.title}~~ ❌ **ENTFÄLLT**${e.cancel_reason ? ' (' + e.cancel_reason + ')' : ''}` : `**${d}** · ${t} Uhr · ${e.title}${e.sim ? ' _(' + e.sim + ')_' : ''}`;
+            });
+            try {
+                await dcSend({ embeds: [{ title: '📅 Termine der nächsten 7 Tage', description: (lines.join('\n') || 'Keine Termine in den nächsten 7 Tagen.').slice(0, 4000), color: 0x00f3ff, footer: { text: 'REVORYX ESPORTS' } }] });
+                st.textContent = 'Terminübersicht gesendet.'; st.style.color = '#4ade80';
+            } catch (err) { st.textContent = 'Fehler: ' + err.message; st.style.color = '#f87171'; }
         }
 
         function openMemberModal() {
